@@ -1,0 +1,37 @@
+[
+  {"crop_id": "cotton_kharif",    "district": "Nagpur",    "pct_farmers_planting": 0.52},
+  {"crop_id": "soybean_kharif",   "district": "Nagpur",    "pct_farmers_planting": 0.28},
+  {"crop_id": "wheat_rabi",       "district": "Nagpur",    "pct_farmers_planting": 0.12},
+  {"crop_id": "groundnut_kharif", "district": "Nagpur",    "pct_farmers_planting": 0.05},
+  {"crop_id": "maize_kharif",     "district": "Nagpur",    "pct_farmers_planting": 0.03},
+
+  {"crop_id": "wheat_rabi",       "district": "Ludhiana",  "pct_farmers_planting": 0.68},
+  {"crop_id": "rice_kharif",      "district": "Ludhiana",  "pct_farmers_planting": 0.22},
+  {"crop_id": "maize_kharif",     "district": "Ludhiana",  "pct_farmers_planting": 0.06},
+  {"crop_id": "cotton_kharif",    "district": "Ludhiana",  "pct_farmers_planting": 0.04},
+
+  {"crop_id": "soybean_kharif",   "district": "Indore",    "pct_farmers_planting": 0.58},
+  {"crop_id": "wheat_rabi",       "district": "Indore",    "pct_farmers_planting": 0.25},
+  {"crop_id": "maize_kharif",     "district": "Indore",    "pct_farmers_planting": 0.10},
+  {"crop_id": "chickpea_rabi",    "district": "Indore",    "pct_farmers_planting": 0.07},
+
+  {"crop_id": "groundnut_kharif", "district": "Junagadh",  "pct_farmers_planting": 0.47},
+  {"crop_id": "cotton_kharif",    "district": "Junagadh",  "pct_farmers_planting": 0.31},
+  {"crop_id": "wheat_rabi",       "district": "Junagadh",  "pct_farmers_planting": 0.14},
+  {"crop_id": "maize_kharif",     "district": "Junagadh",  "pct_farmers_planting": 0.08},
+
+  {"crop_id": "maize_kharif",     "district": "Davangere", "pct_farmers_planting": 0.43},
+  {"crop_id": "cotton_kharif",    "district": "Davangere", "pct_farmers_planting": 0.30},
+  {"crop_id": "soybean_kharif",   "district": "Davangere", "pct_farmers_planting": 0.18},
+  {"crop_id": "groundnut_kharif", "district": "Davangere", "pct_farmers_planting": 0.09},
+
+  {"crop_id": "wheat_rabi",       "district": "Jaipur",    "pct_farmers_planting": 0.49},
+  {"crop_id": "mustard_rabi",     "district": "Jaipur",    "pct_farmers_planting": 0.33},
+  {"crop_id": "chickpea_rabi",    "district": "Jaipur",    "pct_farmers_planting": 0.12},
+  {"crop_id": "maize_kharif",     "district": "Jaipur",    "pct_farmers_planting": 0.06},
+
+  {"crop_id": "rice_kharif",      "district": "Patna",     "pct_farmers_planting": 0.62},
+  {"crop_id": "wheat_rabi",       "district": "Patna",     "pct_farmers_planting": 0.25},
+  {"crop_id": "maize_kharif",     "district": "Patna",     "pct_farmers_planting": 0.08},
+  {"crop_id": "mustard_rabi",     "district": "Patna",     "pct_farmers_planting": 0.05}
+]

@@ -1,0 +1,67 @@
+[
+  {
+    "season": "kharif_2022",
+    "location": "Nagpur, Maharashtra",
+    "crop_id": "cotton_kharif",
+    "sowing_date": "2022-06-20",
+    "harvest_date": "2022-12-17",
+    "actual_yield_qtl_ha": 17.4,
+    "rainfall_total_mm": 698.2,
+    "avg_temp_c": 28.6,
+    "input_cost_inr_ha": 41200,
+    "revenue_inr_ha": 113100,
+    "net_profit_inr_ha": 71900
+  },
+  {
+    "season": "rabi_2022",
+    "location": "Ludhiana, Punjab",
+    "crop_id": "wheat_rabi",
+    "sowing_date": "2022-11-15",
+    "harvest_date": "2023-03-15",
+    "actual_yield_qtl_ha": 40.2,
+    "rainfall_total_mm": 185.4,
+    "avg_temp_c": 18.3,
+    "input_cost_inr_ha": 24800,
+    "revenue_inr_ha": 91455,
+    "net_profit_inr_ha": 66655
+  },
+  {
+    "season": "kharif_2022",
+    "location": "Indore, Madhya Pradesh",
+    "crop_id": "soybean_kharif",
+    "sowing_date": "2022-06-25",
+    "harvest_date": "2022-10-03",
+    "actual_yield_qtl_ha": 20.8,
+    "rainfall_total_mm": 892.1,
+    "avg_temp_c": 26.4,
+    "input_cost_inr_ha": 27600,
+    "revenue_inr_ha": 87360,
+    "net_profit_inr_ha": 59760
+  },
+  {
+    "season": "kharif_2022",
+    "location": "Junagadh, Gujarat",
+    "crop_id": "groundnut_kharif",
+    "sowing_date": "2022-06-18",
+    "harvest_date": "2022-10-06",
+    "actual_yield_qtl_ha": 22.1,
+    "rainfall_total_mm": 612.8,
+    "avg_temp_c": 29.1,
+    "input_cost_inr_ha": 29800,
+    "revenue_inr_ha": 128180,
+    "net_profit_inr_ha": 98380
+  },
+  {
+    "season": "kharif_2022",
+    "location": "Davangere, Karnataka",
+    "crop_id": "maize_kharif",
+    "sowing_date": "2022-06-10",
+    "harvest_date": "2022-09-08",
+    "actual_yield_qtl_ha": 48.7,
+    "rainfall_total_mm": 543.0,
+    "avg_temp_c": 27.2,
+    "input_cost_inr_ha": 21500,
+    "revenue_inr_ha": 92530,
+    "net_profit_inr_ha": 71030
+  }
+]

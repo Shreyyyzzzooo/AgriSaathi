@@ -1,0 +1,12 @@
+[
+  {"crop_id": "cotton_kharif",   "modal_price_quintal": 6500.0,  "price_variance": 480.0},
+  {"crop_id": "soybean_kharif",  "modal_price_quintal": 4200.0,  "price_variance": 320.0},
+  {"crop_id": "wheat_rabi",      "modal_price_quintal": 2275.0,  "price_variance": 120.0},
+  {"crop_id": "groundnut_kharif","modal_price_quintal": 5800.0,  "price_variance": 550.0},
+  {"crop_id": "maize_kharif",    "modal_price_quintal": 1900.0,  "price_variance": 180.0},
+  {"crop_id": "rice_kharif",     "modal_price_quintal": 2300.0,  "price_variance": 150.0},
+  {"crop_id": "chickpea_rabi",   "modal_price_quintal": 5400.0,  "price_variance": 400.0},
+  {"crop_id": "mustard_rabi",    "modal_price_quintal": 5650.0,  "price_variance": 420.0},
+  {"crop_id": "sugarcane",       "modal_price_quintal":  370.0,  "price_variance":  20.0},
+  {"crop_id": "onion_rabi",      "modal_price_quintal": 1800.0,  "price_variance": 600.0}
+]

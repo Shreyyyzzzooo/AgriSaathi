@@ -1,0 +1,72 @@
+{
+  "cotton_kharif": {
+    "crop_id": "cotton_kharif",
+    "name": "Cotton",
+    "season": "kharif",
+    "duration_days": 180,
+    "yield_min_qtl_ha": 10.0,
+    "yield_max_qtl_ha": 28.0,
+    "yield_mean_qtl_ha": 18.0,
+    "yield_std_qtl_ha": 3.5,
+    "cost_inr_ha": 42000,
+    "water_req": "high",
+    "water_req_mm_season": 700,
+    "optimal_soil_types": ["black", "clay", "loam"]
+  },
+  "soybean_kharif": {
+    "crop_id": "soybean_kharif",
+    "name": "Soybean",
+    "season": "kharif",
+    "duration_days": 100,
+    "yield_min_qtl_ha": 12.0,
+    "yield_max_qtl_ha": 35.0,
+    "yield_mean_qtl_ha": 22.0,
+    "yield_std_qtl_ha": 4.0,
+    "cost_inr_ha": 28000,
+    "water_req": "medium",
+    "water_req_mm_season": 450,
+    "optimal_soil_types": ["loam", "clay"]
+  },
+  "wheat_rabi": {
+    "crop_id": "wheat_rabi",
+    "name": "Wheat",
+    "season": "rabi",
+    "duration_days": 120,
+    "yield_min_qtl_ha": 22.0,
+    "yield_max_qtl_ha": 55.0,
+    "yield_mean_qtl_ha": 38.0,
+    "yield_std_qtl_ha": 5.0,
+    "cost_inr_ha": 25000,
+    "water_req": "medium",
+    "water_req_mm_season": 400,
+    "optimal_soil_types": ["loam", "clay", "sandy"]
+  },
+  "groundnut_kharif": {
+    "crop_id": "groundnut_kharif",
+    "name": "Groundnut",
+    "season": "kharif",
+    "duration_days": 110,
+    "yield_min_qtl_ha": 10.0,
+    "yield_max_qtl_ha": 32.0,
+    "yield_mean_qtl_ha": 20.0,
+    "yield_std_qtl_ha": 3.8,
+    "cost_inr_ha": 30000,
+    "water_req": "medium",
+    "water_req_mm_season": 500,
+    "optimal_soil_types": ["sandy", "loam"]
+  },
+  "maize_kharif": {
+    "crop_id": "maize_kharif",
+    "name": "Maize",
+    "season": "kharif",
+    "duration_days": 90,
+    "yield_min_qtl_ha": 28.0,
+    "yield_max_qtl_ha": 72.0,
+    "yield_mean_qtl_ha": 50.0,
+    "yield_std_qtl_ha": 8.0,
+    "cost_inr_ha": 22000,
+    "water_req": "medium",
+    "water_req_mm_season": 500,
+    "optimal_soil_types": ["loam", "sandy", "clay"]
+  }
+}
