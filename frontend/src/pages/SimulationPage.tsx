@@ -97,7 +97,6 @@ export default function SimulationPage({ onBack }: SimulationPageProps) {
       display: "flex",
       flexDirection: "column",
       color: "#F7FBF4",
-      background: "#04140F",
     }}>
       {/* Top UI Section */}
       <div style={{ display: "flex", flexDirection: "column" }}>

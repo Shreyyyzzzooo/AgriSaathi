@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Sprout, Globe, LogOut, ArrowRight, User, Sparkles, CloudRain, Sun, ShieldCheck, SlidersHorizontal } from "lucide-react";
-import { FeatureCard, Badge } from "../components/ui";
+import { FeatureCard } from "../components/ui";
 import FarmerInputForm from "../components/FarmerInputForm";
 import { FieldParamsModal } from "../components/FieldParamsModal";
 import { useFarm } from "../context/FarmContext";
@@ -36,7 +36,6 @@ export default function DashboardPage({
     farmerProfile,
     saveFarmerProfile,
     crops,
-    simResults,
     lang,
     setShowLanguageModal,
     updateFarmSetup,
@@ -47,7 +46,6 @@ export default function DashboardPage({
 
   const season = getCurrentSeason();
   const topCrop = crops[0] || null;
-  const simCount = Object.keys(simResults).length;
 
   const handleFarmerSuccess = (
     sess: FarmerResponse,
@@ -75,7 +73,6 @@ export default function DashboardPage({
     <div style={{
       minHeight: "100vh",
       width: "100%",
-      background: "linear-gradient(180deg, #04140F 0%, #0A2A1E 26%, #123D2A 55%, #061713 100%)",
       display: "flex",
       flexDirection: "column",
       color: "#F7FBF4",
@@ -242,7 +239,7 @@ export default function DashboardPage({
       }}>
         {/* Welcome & Farm Health Overview Banner */}
         <section style={{
-          background: "linear-gradient(135deg, rgba(14, 46, 36, 0.75), rgba(6, 23, 19, 0.85))",
+          background: "linear-gradient(135deg, rgba(14, 46, 36, 0.55), rgba(6, 23, 19, 0.65))",
           backdropFilter: "blur(20px)",
           WebkitBackdropFilter: "blur(20px)",
           border: "1px solid rgba(76, 255, 160, 0.28)",
@@ -334,7 +331,7 @@ export default function DashboardPage({
             gap: 12,
           }}>
             <div style={{
-              background: "rgba(8, 24, 18, 0.6)",
+              background: "rgba(8, 24, 18, 0.35)",
               border: "1px solid rgba(76, 255, 160, 0.18)",
               borderRadius: 12,
               padding: "14px",
@@ -351,7 +348,7 @@ export default function DashboardPage({
             </div>
 
             <div style={{
-              background: "rgba(8, 24, 18, 0.6)",
+              background: "rgba(8, 24, 18, 0.35)",
               border: "1px solid rgba(76, 255, 160, 0.18)",
               borderRadius: 12,
               padding: "14px",
@@ -368,7 +365,7 @@ export default function DashboardPage({
             </div>
 
             <div style={{
-              background: "rgba(8, 24, 18, 0.6)",
+              background: "rgba(8, 24, 18, 0.35)",
               border: "1px solid rgba(76, 255, 160, 0.18)",
               borderRadius: 12,
               padding: "14px",
@@ -385,7 +382,7 @@ export default function DashboardPage({
             </div>
 
             <div style={{
-              background: "rgba(8, 24, 18, 0.6)",
+              background: "rgba(8, 24, 18, 0.35)",
               border: "1px solid rgba(76, 255, 160, 0.18)",
               borderRadius: 12,
               padding: "14px",
@@ -466,7 +463,7 @@ export default function DashboardPage({
 
         {/* Environmental & Diversification Security Brief */}
         <section style={{
-          background: "rgba(10, 34, 26, 0.55)",
+          background: "rgba(10, 34, 26, 0.35)",
           backdropFilter: "blur(14px)",
           border: "1px solid rgba(76, 255, 160, 0.2)",
           borderRadius: 16,

@@ -75,3 +75,17 @@ html, body {
 ::-webkit-scrollbar-thumb:hover {
   background: #4CFFA0;
 }
+
+/* Global wrapper for authenticated pages to show the nature background */
+.auth-background-wrapper {
+  min-height: 100vh;
+  width: 100%;
+  /* Dark green tinted overlay over the fern background */
+  background-image: linear-gradient(rgba(10, 34, 26, 0.2), rgba(4, 20, 15, 0.35)), url('/background.png');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  display: flex;
+  flex-direction: column;
+}

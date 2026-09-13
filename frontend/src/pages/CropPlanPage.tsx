@@ -59,7 +59,6 @@ export default function CropPlanPage({ onBack, onNavigateSimulation }: CropPlanP
     <div style={{
       minHeight: "100vh",
       width: "100%",
-      background: "linear-gradient(180deg, #04140F 0%, #0A2A1E 26%, #123D2A 50%, #061713 100%)",
       display: "flex",
       flexDirection: "column",
       color: "#F7FBF4",

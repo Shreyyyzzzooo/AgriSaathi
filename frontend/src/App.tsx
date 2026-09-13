@@ -100,40 +100,42 @@ function AppContent() {
   return (
     <>
       {/* Active Page Routing */}
-      {(!isAuthenticated || route === "landing") && (
+      {(!isAuthenticated || route === "landing") ? (
         <LandingPage
           onLogin={(user) => handleLoginSuccess(user)}
           onExplore={() => handleLoginSuccess("Guest Farmer")}
         />
-      )}
+      ) : (
+        <div className="auth-background-wrapper">
+          {route === "dashboard" && (
+            <DashboardPage
+              onNavigateSimulation={() => navigateTo("simulation", "/#simulation")}
+              onNavigateChatbot={() => navigateTo("chatbot", "/#chatbot")}
+              onNavigateCropPlan={() => navigateTo("crop-plan", "/#crop-plan")}
+              onNavigateMarket={() => navigateTo("market-prices", "/#market-prices")}
+              onLogout={handleLogout}
+            />
+          )}
 
-      {isAuthenticated && route === "dashboard" && (
-        <DashboardPage
-          onNavigateSimulation={() => navigateTo("simulation", "/#simulation")}
-          onNavigateChatbot={() => navigateTo("chatbot", "/#chatbot")}
-          onNavigateCropPlan={() => navigateTo("crop-plan", "/#crop-plan")}
-          onNavigateMarket={() => navigateTo("market-prices", "/#market-prices")}
-          onLogout={handleLogout}
-        />
-      )}
+          {route === "simulation" && (
+            <SimulationPage onBack={() => navigateTo("dashboard", "/#dashboard")} />
+          )}
 
-      {isAuthenticated && route === "simulation" && (
-        <SimulationPage onBack={() => navigateTo("dashboard", "/#dashboard")} />
-      )}
+          {route === "chatbot" && (
+            <ChatbotPage onBack={() => navigateTo("dashboard", "/#dashboard")} />
+          )}
 
-      {isAuthenticated && route === "chatbot" && (
-        <ChatbotPage onBack={() => navigateTo("dashboard", "/#dashboard")} />
-      )}
+          {route === "crop-plan" && (
+            <CropPlanPage
+              onBack={() => navigateTo("dashboard", "/#dashboard")}
+              onNavigateSimulation={() => navigateTo("simulation", "/#simulation")}
+            />
+          )}
 
-      {isAuthenticated && route === "crop-plan" && (
-        <CropPlanPage
-          onBack={() => navigateTo("dashboard", "/#dashboard")}
-          onNavigateSimulation={() => navigateTo("simulation", "/#simulation")}
-        />
-      )}
-
-      {isAuthenticated && route === "market-prices" && (
-        <MarketPricesPage onBack={() => navigateTo("dashboard", "/#dashboard")} />
+          {route === "market-prices" && (
+            <MarketPricesPage onBack={() => navigateTo("dashboard", "/#dashboard")} />
+          )}
+        </div>
       )}
 
       {/* Global / Post-Login Language Selection Modal */}
