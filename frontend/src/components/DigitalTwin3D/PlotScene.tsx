@@ -27,6 +27,8 @@ interface PlotSceneProps {
   weatherByDay: WeatherDay[];
   currentDay: number;
   cropType: string;
+  healthScore?: number;
+  recentRainfall?: number;
 }
 
 function SceneContents({
@@ -35,6 +37,8 @@ function SceneContents({
   weatherByDay,
   currentDay,
   cropType,
+  healthScore = 100,
+  recentRainfall = 0,
 }: PlotSceneProps) {
   const today = weatherByDay[Math.min(currentDay, weatherByDay.length - 1)] ?? null;
 
@@ -44,7 +48,7 @@ function SceneContents({
       <WeatherParticles weather={today} plotSize={plotSize} />
 
       {/* Ground plane */}
-      <GroundMesh plotSize={plotSize} />
+      <GroundMesh plotSize={plotSize} recentRainfall={recentRainfall} />
 
       {/* Crop instances */}
       <CropGrowthStage
@@ -52,6 +56,7 @@ function SceneContents({
         durationDays={cropDurationDays}
         cropType={cropType}
         plotSize={plotSize}
+        healthScore={healthScore}
       />
     </>
   );

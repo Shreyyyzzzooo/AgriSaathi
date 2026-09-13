@@ -1,5 +1,5 @@
 /**
- * DashboardPage — full AgriTwin application page.
+ * DashboardPage — full AgriSaathi application page.
  *
  * Layout (responsive):
  *   Desktop: split screen
@@ -17,6 +17,7 @@ import { useState, useCallback } from "react";
 import { DigitalTwinView } from "../components/DigitalTwin3D";
 import FarmerInputForm from "../components/FarmerInputForm";
 import CropComparisonDashboard from "../components/CropComparisonDashboard";
+import { ChatBot } from "../components/ChatBot/ChatBot";
 import { ErrorBanner, SkeletonCard } from "../components/ui";
 import { getTranslation, type Language } from "../i18n";
 import type {
@@ -158,6 +159,7 @@ export default function DashboardPage() {
           durationDays={twinDuration}
           weatherByDay={twinWeather}
           cropType={twinCrop?.crop_id ?? "wheat_rabi"}
+          activeCropResult={twinCrop}
         />
 
         {/* Overlay: "select a crop to animate" hint when no results */}
@@ -304,6 +306,7 @@ export default function DashboardPage() {
               lang={lang}
               setLang={setLang}
             />
+            <ChatBot sessionId={session.session_id} />
           </>
         )}
       </div>

@@ -154,7 +154,7 @@ export default function FarmerInputForm({ onSuccess, lang }: FarmerInputFormProp
   const handleSoilConfirmation = (agree: boolean) => {
     setSoilConfirmed(agree);
     if (agree && soilInfo) {
-      set("soil_type", soilInfo.detected_type);
+      set("soil_type", (soilInfo as any).detected_type_simple || soilInfo.detected_type);
     }
   };
 
@@ -173,7 +173,8 @@ export default function FarmerInputForm({ onSuccess, lang }: FarmerInputFormProp
           payload.location,
           payload.budget_inr,
           payload.soil_type,
-          payload.water_availability
+          payload.water_availability,
+          payload.plot_size_ha
         ),
       ]);
       onSuccess(session, crops, payload);

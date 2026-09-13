@@ -316,6 +316,7 @@ def _simulate_single_crop(
         "p50":             round(p50_p,   2),
         "p90":             round(p90_p,   2),
         "histogram_bins":  [round(float(e), 2) for e in edges],  # 11 values
+        "histogram_counts": [int(c) for c in counts],            # 10 values
     }
 
     # ── 9. Recommendation score (higher = better) ─────────────────────────────

@@ -12,6 +12,7 @@ import * as THREE from "three";
 interface GroundMeshProps {
   /** Plot size in hectares. 1 ha ≈ 100 m × 100 m → scale by sqrt(ha)*10. */
   plotSize: number;
+  recentRainfall?: number;
 }
 
 /** Convert hectares to scene units (roughly metres at 1:1 scale). */
@@ -19,7 +20,7 @@ function haToUnits(ha: number): number {
   return Math.sqrt(Math.max(0.1, ha)) * 10;
 }
 
-export default function GroundMesh({ plotSize }: GroundMeshProps) {
+export default function GroundMesh({ plotSize, recentRainfall = 0 }: GroundMeshProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const size = haToUnits(plotSize);
 
@@ -48,10 +49,18 @@ export default function GroundMesh({ plotSize }: GroundMeshProps) {
     return geo;
   }, [size]);
 
+  const color = useMemo(() => {
+    const wetness = Math.min(1, recentRainfall / 20); // 20mm is fully saturated
+    const r = 0x8B - wetness * (0x8B - 0x5C);
+    const g = 0x69 - wetness * (0x69 - 0x40);
+    const b = 0x14 - wetness * (0x14 - 0x33);
+    return new THREE.Color(r / 255, g / 255, b / 255);
+  }, [recentRainfall]);
+
   return (
     <mesh ref={meshRef} geometry={geometry} receiveShadow>
       <meshLambertMaterial
-        color="#8B6914"
+        color={color}
         side={THREE.FrontSide}
         flatShading
       />

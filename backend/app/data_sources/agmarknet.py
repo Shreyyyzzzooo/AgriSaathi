@@ -33,7 +33,8 @@ logger = logging.getLogger(__name__)
 
 _API_KEY_ENV = "AGMARKNET_API_KEY"
 _BASE_URL = "https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070"
-_TIMEOUT_S = 15.0
+_TIMEOUT_S = 3.0
+
 
 _FALLBACK_FILE: Path = Path(__file__).parent / "cache" / "fallback_mandi_prices.json"
 

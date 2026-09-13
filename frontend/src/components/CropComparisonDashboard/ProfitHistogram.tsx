@@ -25,15 +25,14 @@ function fmt(n: number): string {
 
 export default function ProfitHistogram({ stats, cropName }: ProfitHistogramProps) {
   const bins = stats.histogram_bins; // 11 edges → 10 bars
-  if (!bins || bins.length < 11) return null;
+  const counts = stats.histogram_counts; // 10 bars
+  if (!bins || bins.length < 11 || !counts || counts.length < 10) return null;
 
-  // Build chart data from bin edges; frequencies come from the uniform assumption
-  // (the backend returns bin edges, not counts — reconstruct mid-points)
+  // Build chart data from bin edges and frequencies
   const data = Array.from({ length: 10 }, (_, i) => ({
     name: fmt(bins[i]),
     midpoint: (bins[i] + bins[i + 1]) / 2,
-    // Uniform height placeholder — real counts would require backend change
-    value: 1,
+    value: counts[i],
   }));
 
   return (

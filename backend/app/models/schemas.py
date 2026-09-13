@@ -43,6 +43,7 @@ class CropStats(BaseModel):
     p50: float
     p90: float
     histogram_bins: list[float]
+    histogram_counts: list[int]
 
     @field_validator("histogram_bins")
     @classmethod
@@ -88,3 +89,18 @@ class ExplainResponse(BaseModel):
     text_pa: Optional[str] = None
     text_ml: Optional[str] = None
     reasoning_bullets: list[str]
+
+
+class ChatMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str
+
+
+class ChatRequest(BaseModel):
+    session_id: str
+    message: str
+    history: list[ChatMessage] = Field(default_factory=list)
+
+
+class ChatResponse(BaseModel):
+    reply_text: str

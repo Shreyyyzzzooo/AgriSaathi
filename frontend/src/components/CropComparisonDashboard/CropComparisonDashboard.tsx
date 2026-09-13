@@ -8,7 +8,9 @@ import type {
   CropResult,
   ExplainResponse,
   BudgetFlag,
+  AgronomyPlanResponse,
 } from "../../types/api";
+import AgronomyPlanModal from "./AgronomyPlanModal";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const budgetVariant = (f: BudgetFlag) =>
@@ -17,6 +19,15 @@ const budgetVariant = (f: BudgetFlag) =>
 const seasonEmoji: Record<string, string> = {
   rabi: "❄️", kharif: "🌧️", zaid: "☀️",
 };
+
+// Determine the current Indian agricultural season based on today's month
+function getCurrentSeason(): string {
+  const m = new Date().getMonth() + 1; // 1-12
+  if (m >= 6 && m <= 10) return "kharif";
+  if (m === 11 || m === 12 || m <= 3) return "rabi";
+  return "zaid";
+}
+const CURRENT_SEASON = getCurrentSeason();
 
 function fmt(n: number): string {
   if (Math.abs(n) >= 100_000) return `₹${(n / 100_000).toFixed(1)}L`;
@@ -51,7 +62,33 @@ export default function CropComparisonDashboard({
   const [simLoading, setSimLoading] = useState(false);
   const [explLoading, setExplLoading] = useState<string | null>(null);
   const [explanations, setExplanations] = useState<Record<string, ExplainResponse>>({});
+  
+  // Agronomy Plan State
+  const [agronomyPlan, setAgronomyPlan] = useState<AgronomyPlanResponse | null>(null);
+  const [agronomyLoading, setAgronomyLoading] = useState<boolean>(false);
+  const [showAgronomyModal, setShowAgronomyModal] = useState<boolean>(false);
+  const [selectedCropForPlan, setSelectedCropForPlan] = useState<string>("");
+
   const [error, setError]           = useState<string | null>(null);
+
+  const speakExplanation = (text: string) => {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    // Language tag format mapping for SpeechSynthesis
+    const langMap: Record<string, string> = {
+      en: "en-IN", hi: "hi-IN", mr: "mr-IN", bn: "bn-IN", ta: "ta-IN",
+      te: "te-IN", gu: "gu-IN", kn: "kn-IN", pa: "pa-IN", ml: "ml-IN"
+    };
+    utterance.lang = langMap[lang] || "en-IN";
+    utterance.rate = 0.95;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  // ── Search & filter state ─────────────────────────────────────────────────
+  const [search, setSearch]               = useState("");
+  const [showFilters, setShowFilters]     = useState(false);
+  const [filterSeason, setFilterSeason]   = useState<string>("all");
+  const [filterBudget, setFilterBudget]   = useState<string>("all");
 
   const t = (key: Parameters<typeof getTranslation>[1]) => getTranslation(lang, key);
 
@@ -59,6 +96,15 @@ export default function CropComparisonDashboard({
     f === "within_budget" ? t("withinBudget")
       : f === "marginal"  ? t("marginalBudget")
       : t("overBudget");
+
+  // ── Filtered + searched crop list ────────────────────────────────────────
+  const visibleCrops = crops.filter((crop) => {
+    if (search && !crop.name.toLowerCase().includes(search.toLowerCase()) &&
+        !crop.crop_id.toLowerCase().includes(search.toLowerCase())) return false;
+    if (filterSeason !== "all" && crop.season !== filterSeason) return false;
+    if (filterBudget !== "all" && crop.budget_flag !== filterBudget) return false;
+    return true;
+  });
 
   // Auto-refresh explanations when language changes
   useEffect(() => {
@@ -130,6 +176,33 @@ export default function CropComparisonDashboard({
     }
   };
 
+  const handleFetchAgronomyPlan = async (cropId: string) => {
+    setSelectedCropForPlan(cropId);
+    setShowAgronomyModal(true);
+    setAgronomyLoading(true);
+    
+    try {
+      const apiLang = lang === "all" ? "en" : lang;
+      const res = await fetch(`http://localhost:8000/api/agronomy/plan`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          session_id: sessionId,
+          crop_id: cropId,
+          lang: apiLang
+        })
+      });
+      if (!res.ok) throw new Error("Failed to fetch agronomy plan");
+      const data = await res.json();
+      setAgronomyPlan(data);
+    } catch (err) {
+      setError(extractErrorMessage(err));
+      setShowAgronomyModal(false);
+    } finally {
+      setAgronomyLoading(false);
+    }
+  };
+
   return (
     <div style={{ fontFamily: "system-ui, sans-serif" }}>
       {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
@@ -184,18 +257,152 @@ export default function CropComparisonDashboard({
         </div>
       </div>
 
+      {/* ── Search & Filter bar ── */}
+      <div style={{ marginBottom: 14 }}>
+        {/* Row 1: search + filter toggle */}
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {/* Search input */}
+          <div style={{ position: "relative", flex: 1 }}>
+            <span style={{
+              position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)",
+              color: "#64748B", fontSize: 14, pointerEvents: "none",
+            }}>🔍</span>
+            <input
+              type="text"
+              placeholder="Search crops by name..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{
+                width: "100%", boxSizing: "border-box" as const,
+                background: "#1E293B", border: "1px solid #334155", borderRadius: 8,
+                padding: "8px 12px 8px 32px", color: "#F1F5F9", fontSize: 13, outline: "none",
+              }}
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                style={{
+                  position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
+                  background: "none", border: "none", color: "#64748B", cursor: "pointer", fontSize: 16,
+                }}
+              >×</button>
+            )}
+          </div>
+
+          {/* Filter toggle button */}
+          <button
+            onClick={() => setShowFilters((v) => !v)}
+            style={{
+              background: showFilters ? "#3B82F6" : "#1E293B",
+              border: `1px solid ${showFilters ? "#3B82F6" : "#334155"}`,
+              borderRadius: 8, padding: "8px 14px",
+              color: showFilters ? "#fff" : "#94A3B8",
+              fontSize: 13, fontWeight: 600, cursor: "pointer",
+              display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" as const,
+            }}
+          >
+            ⚙ Filters
+            {(filterSeason !== "all" || filterBudget !== "all") && (
+              <span style={{
+                background: "#F59E0B", borderRadius: 999, width: 8, height: 8, display: "inline-block",
+              }} />
+            )}
+          </button>
+
+          {/* Result count */}
+          <span style={{ fontSize: 12, color: "#64748B", whiteSpace: "nowrap" as const }}>
+            {visibleCrops.length} / {crops.length} crops
+          </span>
+        </div>
+
+        {/* Row 2: filter chips — visible only when showFilters */}
+        {showFilters && (
+          <div style={{
+            marginTop: 10, display: "flex", flexWrap: "wrap" as const, gap: 10,
+            background: "#0F172A", border: "1px solid #1E293B",
+            borderRadius: 10, padding: "12px 14px",
+          }}>
+            {/* Season filter */}
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 12, color: "#94A3B8", fontWeight: 600 }}>Season:</span>
+              {(["all", "kharif", "rabi", "zaid"] as const).map((s) => (
+                <button key={s}
+                  onClick={() => setFilterSeason(s)}
+                  style={{
+                    background: filterSeason === s ? "#3B82F6" : "#1E293B",
+                    border: "1px solid #334155", borderRadius: 6, padding: "4px 10px",
+                    color: filterSeason === s ? "#fff" : "#94A3B8",
+                    fontSize: 12, cursor: "pointer", fontWeight: filterSeason === s ? 700 : 400,
+                  }}
+                >
+                  {s === "all" ? "All" : s === "kharif" ? "🌧️ Kharif" : s === "rabi" ? "❄️ Rabi" : "☀️ Zaid"}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ width: 1, background: "#334155", margin: "0 4px" }} />
+
+            {/* Budget filter */}
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 12, color: "#94A3B8", fontWeight: 600 }}>Budget:</span>
+              {(["all", "within_budget", "marginal", "over_budget"] as const).map((b) => (
+                <button key={b}
+                  onClick={() => setFilterBudget(b)}
+                  style={{
+                    background: filterBudget === b ? "#3B82F6" : "#1E293B",
+                    border: "1px solid #334155", borderRadius: 6, padding: "4px 10px",
+                    color: filterBudget === b ? "#fff" : "#94A3B8",
+                    fontSize: 12, cursor: "pointer", fontWeight: filterBudget === b ? 700 : 400,
+                  }}
+                >
+                  {b === "all" ? "All" : b === "within_budget" ? "✅ Within" : b === "marginal" ? "⚠️ Marginal" : "❌ Over"}
+                </button>
+              ))}
+            </div>
+
+            {/* Reset filters */}
+            {(filterSeason !== "all" || filterBudget !== "all" || search) && (
+              <button
+                onClick={() => { setFilterSeason("all"); setFilterBudget("all"); setSearch(""); }}
+                style={{
+                  marginLeft: "auto", background: "none", border: "1px solid #475569",
+                  borderRadius: 6, padding: "4px 10px", color: "#64748B",
+                  fontSize: 12, cursor: "pointer",
+                }}
+              >
+                ✕ Reset all
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* ── Crop cards grid ── */}
+      {visibleCrops.length === 0 ? (
+        <div style={{
+          textAlign: "center", padding: "48px 24px",
+          color: "#475569", fontSize: 14,
+          border: "1px dashed #334155", borderRadius: 12,
+        }}>
+          <div style={{ fontSize: 32, marginBottom: 8 }}>🌱</div>
+          <div style={{ fontWeight: 600, color: "#64748B" }}>No crops match your filters</div>
+          <div style={{ marginTop: 4, fontSize: 12 }}>
+            Try adjusting the search or clearing your filters.
+          </div>
+        </div>
+      ) : (
       <div style={{
         display: "grid",
         gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
         gap: 14,
       }}>
-        {crops.map((crop) => {
+        {visibleCrops.map((crop) => {
           const isSelected = selected.has(crop.crop_id);
           const result     = simulationResults[crop.crop_id];
           const isOptimal  = crop.crop_id === optimalCropId && !!result;
           const expl       = explanations[crop.crop_id];
           const isOver     = crop.budget_flag === "over_budget";
+          const isInSeason = crop.season === CURRENT_SEASON;
 
           return (
             <div
@@ -210,6 +417,7 @@ export default function CropComparisonDashboard({
                 transition: "border-color 0.15s, box-shadow 0.15s",
                 boxShadow: isSelected ? "0 0 0 3px rgba(34,197,94,0.15)" : "none",
                 position: "relative" as const,
+                opacity: isInSeason ? 1 : 0.75,
               }}
             >
               {/* Optimal badge */}
@@ -239,6 +447,9 @@ export default function CropComparisonDashboard({
 
               {/* Badges row */}
               <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 10 }}>
+                {isInSeason && (
+                  <Badge variant="green">🌱 In Season</Badge>
+                )}
                 <Badge variant={budgetVariant(crop.budget_flag)}>
                   {budgetLabel(crop.budget_flag)}
                 </Badge>
@@ -291,21 +502,37 @@ export default function CropComparisonDashboard({
                   {/* Histogram */}
                   <ProfitHistogram stats={result.stats} cropName={crop.name} />
 
-                  {/* Explain button */}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleExplain(crop.crop_id); onCropSelected(crop.crop_id, result); }}
-                    style={{
-                      marginTop: 10, width: "100%",
-                      background: "#1E3A5F", border: "1px solid #3B82F6",
-                      borderRadius: 8, padding: "7px 0",
-                      color: "#93C5FD", fontSize: 12, cursor: "pointer",
-                      display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                    }}
-                  >
-                    {explLoading === crop.crop_id
-                      ? <><Spinner size={12} /> {t("askingGranite")}</>
-                      : t("explainBtn")}
-                  </button>
+                  <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                    {/* Explain button */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleExplain(crop.crop_id); onCropSelected(crop.crop_id, result); }}
+                      style={{
+                        flex: 1,
+                        background: "#1E3A5F", border: "1px solid #3B82F6",
+                        borderRadius: 8, padding: "7px 0",
+                        color: "#93C5FD", fontSize: 12, cursor: "pointer",
+                        display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                      }}
+                    >
+                      {explLoading === crop.crop_id
+                        ? <><Spinner size={12} /> {t("askingAI")}</>
+                        : t("explainBtn")}
+                    </button>
+
+                    {/* Agronomy Plan button */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleFetchAgronomyPlan(crop.crop_id); }}
+                      style={{
+                        flex: 1,
+                        background: "#064E3B", border: "1px solid #10B981",
+                        borderRadius: 8, padding: "7px 0",
+                        color: "#6EE7B7", fontSize: 12, cursor: "pointer",
+                        display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                      }}
+                    >
+                      🧪 Care Plan
+                    </button>
+                  </div>
 
                   {/* Explanation box */}
                   {expl && (
@@ -316,9 +543,21 @@ export default function CropComparisonDashboard({
                     }}>
                       {/* Dynamically get text corresponding to selected lang */}
                       {expl[`text_${lang}` as keyof typeof expl] && typeof expl[`text_${lang}` as keyof typeof expl] === "string" && (
-                        <p style={{ color: "#CBD5E1", fontSize: 12, margin: "0 0 8px 0", lineHeight: 1.6 }}>
-                          {expl[`text_${lang}` as keyof typeof expl] as string}
-                        </p>
+                        <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 8 }}>
+                          <p style={{ color: "#CBD5E1", fontSize: 12, margin: 0, lineHeight: 1.6, flex: 1 }}>
+                            {expl[`text_${lang}` as keyof typeof expl] as string}
+                          </p>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); speakExplanation(expl[`text_${lang}` as keyof typeof expl] as string); }}
+                            style={{
+                              background: "transparent", border: "none", color: "#94A3B8",
+                              cursor: "pointer", padding: 0, fontSize: 14,
+                            }}
+                            title="Listen"
+                          >
+                            🔊
+                          </button>
+                        </div>
                       )}
                       <ul style={{ margin: 0, paddingLeft: 16 }}>
                         {expl.reasoning_bullets.map((b, i) => (
@@ -333,6 +572,20 @@ export default function CropComparisonDashboard({
           );
         })}
       </div>
+      )}
+
+      {showAgronomyModal && (
+        <AgronomyPlanModal
+          plan={agronomyPlan}
+          cropName={selectedCropForPlan}
+          lang={lang === "all" ? "en" : lang}
+          isLoading={agronomyLoading}
+          onClose={() => {
+            setShowAgronomyModal(false);
+            setAgronomyPlan(null);
+          }}
+        />
+      )}
     </div>
   );
 }

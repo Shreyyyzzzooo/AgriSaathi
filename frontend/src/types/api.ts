@@ -11,6 +11,16 @@ export type Season = "rabi" | "kharif" | "zaid";
 export type BudgetFlag = "within_budget" | "marginal" | "over_budget";
 export type Lang = "en" | "hi" | "kn" | "mr" | "bn" | "ta" | "te" | "gu" | "pa" | "ml" | "as" | "or" | "ur" | "ne" | "sd" | "ks" | "sa";
 
+export interface CropStats {
+  mean: number;
+  stddev: number;
+  p10: number;
+  p50: number;
+  p90: number;
+  histogram_bins: number[];
+  histogram_counts: number[];
+}
+
 export interface ExplainRequest {
   simulation_result: CropResult;
   lang: Lang;
@@ -48,4 +58,45 @@ export interface PlotSceneProps {
   plotSize: number;           // hectares — drives ground mesh scale
   cropDurationDays: number;   // total growing days — drives animation timeline
   weatherByDay: WeatherDay[]; // direct slice, no transformation
+}
+
+export interface AgronomyPlanRequest {
+  session_id: string;
+  crop_id: string;
+  lang: string;
+}
+
+export interface AgronomyFertilizer {
+  name: string;
+  timing: string;
+  dosage: string;
+  reasoning: string;
+}
+
+export interface AgronomyPesticide {
+  name: string;
+  target: string;
+  dosage: string;
+  reasoning: string;
+}
+
+export interface AgronomyPlanResponse {
+  fertilizers: AgronomyFertilizer[];
+  pesticides: AgronomyPesticide[];
+  general_advice: string;
+}
+
+export interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export interface ChatRequest {
+  session_id: string;
+  message: string;
+  history: ChatMessage[];
+}
+
+export interface ChatResponse {
+  reply_text: string;
 }

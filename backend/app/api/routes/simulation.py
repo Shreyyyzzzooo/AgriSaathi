@@ -195,6 +195,7 @@ async def run_simulation(body: SimulateRequest) -> SimulateResponse:
             p50=sim.stats["p50"],
             p90=sim.stats["p90"],
             histogram_bins=sim.stats["histogram_bins"],
+            histogram_counts=sim.stats["histogram_counts"],
         )
 
         crop_results.append(CropResult(

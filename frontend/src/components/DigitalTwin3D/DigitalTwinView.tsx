@@ -9,6 +9,7 @@
  *   durationDays    total growing days (default 120)
  *   weatherByDay    WeatherDay[] from /simulate; falls back to MOCK_WEATHER
  *   cropType        crop_id string (default "wheat_rabi")
+ *   activeCropResult simulation result object for HUD display
  *
  * Internal state:
  *   currentDay      managed here; passed down to PlotScene + TimelineScrubber
@@ -62,6 +63,21 @@ function stressWeather(weather: WeatherDay[]): WeatherDay[] {
   }));
 }
 
+function calculateHealth(currentDay: number, weatherByDay: WeatherDay[]): number {
+  if (!weatherByDay || weatherByDay.length === 0) return 100;
+  let health = 100;
+  const maxDay = Math.min(currentDay, weatherByDay.length - 1);
+  for (let i = 0; i <= maxDay; i++) {
+    const w = weatherByDay[i];
+    if (w.temp_c > 35) health -= (w.temp_c - 35) * 0.3; // heat stress
+    if (w.temp_c < 10) health -= (10 - w.temp_c) * 0.2; // cold stress
+    if (w.condition === "stormy") health -= 2;          // storm damage
+    if (w.rainfall_mm === 0 && w.temp_c > 32) health -= 0.5; // drought
+    if (w.rainfall_mm > 5 && health < 100) health += 1; // recovery
+  }
+  return Math.max(0, Math.min(100, Math.round(health)));
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 interface DigitalTwinViewProps {
@@ -69,6 +85,7 @@ interface DigitalTwinViewProps {
   durationDays?: number;
   weatherByDay?: WeatherDay[];
   cropType?: string;
+  activeCropResult?: any;
 }
 
 export default function DigitalTwinView({
@@ -76,6 +93,7 @@ export default function DigitalTwinView({
   durationDays = 120,
   weatherByDay,
   cropType = "wheat_rabi",
+  activeCropResult,
 }: DigitalTwinViewProps) {
   const [currentDay, setCurrentDay] = useState(0);
   const [activeWeather, setActiveWeather] = useState<WeatherDay[]>([]);
@@ -98,6 +116,22 @@ export default function DigitalTwinView({
 
   // Decide which weather to show in the scene: active (from scrubber) or base
   const sceneWeather = activeWeather.length > 0 ? activeWeather : baseWeather;
+  const healthScore = calculateHealth(currentDay, sceneWeather);
+  
+  // HUD Data
+  const growthPercent = Math.min(100, Math.round((currentDay / Math.max(1, durationDays)) * 100));
+  const todayWeather = sceneWeather[Math.min(currentDay, sceneWeather.length - 1)];
+  const currentTemp = todayWeather?.temp_c.toFixed(1) || "--";
+  
+  let recentRainfall = 0;
+  for (let i = Math.max(0, currentDay - 2); i <= currentDay; i++) {
+    recentRainfall += sceneWeather[i]?.rainfall_mm || 0;
+  }
+
+  const expectedYield = activeCropResult?.stats?.p50 
+    ? `₹${(activeCropResult.stats.p50 / 1000).toFixed(1)}K` 
+    : "--";
+  const risk = activeCropResult?.market_crash_risk ? "High Risk (Market)" : "Normal";
 
   return (
     <div
@@ -121,35 +155,71 @@ export default function DigitalTwinView({
           weatherByDay={sceneWeather}
           currentDay={currentDay}
           cropType={cropType}
+          healthScore={healthScore}
+          recentRainfall={recentRainfall}
         />
       </div>
 
-      {/* ── Info overlay: crop type + day ── */}
+      {/* ── Info HUD ── */}
       <div
         style={{
           position: "absolute",
           top: "12px",
           left: "12px",
-          background: "rgba(15, 23, 42, 0.75)",
-          borderRadius: "8px",
-          padding: "6px 12px",
+          background: "rgba(15, 23, 42, 0.85)",
+          backdropFilter: "blur(4px)",
+          border: "1px solid #334155",
+          borderRadius: "10px",
+          padding: "12px 16px",
           color: "#94A3B8",
           fontSize: "12px",
           fontFamily: "system-ui, sans-serif",
           pointerEvents: "none",
+          display: "flex",
+          flexDirection: "column",
+          gap: "8px",
+          minWidth: "220px",
         }}
       >
-        <span style={{ color: "#F8FAFC", fontWeight: 600 }}>
+        <div style={{ color: "#F8FAFC", fontWeight: 700, fontSize: "14px", borderBottom: "1px solid #334155", paddingBottom: "6px", marginBottom: "4px" }}>
           {cropType.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
-        </span>
-        {"  "}·{"  "}
-        {plotSize} ha{"  "}·{"  "}
-        {durationDays} days
-        {!weatherByDay || weatherByDay.length === 0 ? (
-          <span style={{ marginLeft: "8px", color: "#F59E0B" }}>
-            [mock data]
-          </span>
-        ) : null}
+          {!weatherByDay || weatherByDay.length === 0 ? (
+            <span style={{ marginLeft: "6px", color: "#F59E0B", fontSize: "10px", fontWeight: 400 }}>[mock]</span>
+          ) : null}
+        </div>
+        
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <span>Simulation Day</span>
+          <strong style={{ color: "#E2E8F0" }}>{currentDay} / {durationDays}</strong>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <span>Growth</span>
+          <strong style={{ color: "#22C55E" }}>{growthPercent}%</strong>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <span>Health Score</span>
+          <strong style={{ color: healthScore > 80 ? "#22C55E" : healthScore > 50 ? "#F59E0B" : "#EF4444" }}>
+            {healthScore}/100
+          </strong>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <span>Temperature</span>
+          <strong style={{ color: "#E2E8F0" }}>{currentTemp}°C</strong>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <span>Soil Moisture</span>
+          <strong style={{ color: recentRainfall > 15 ? "#3B82F6" : recentRainfall > 5 ? "#E2E8F0" : "#F59E0B" }}>
+            {recentRainfall > 15 ? "High" : recentRainfall > 5 ? "Optimal" : "Low"}
+          </strong>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: "4px", paddingTop: "8px", borderTop: "1px solid #334155" }}>
+          <span>Expected Yield</span>
+          <strong style={{ color: "#E2E8F0" }}>{expectedYield}</strong>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <span>Risk Level</span>
+          <strong style={{ color: risk === "Normal" ? "#22C55E" : "#EF4444" }}>{risk}</strong>
+        </div>
       </div>
 
       {/* ── Timeline scrubber overlaid at bottom ── */}

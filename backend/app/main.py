@@ -23,6 +23,8 @@ from app.api.routes.crops import router as crops_router
 from app.api.routes.simulation import router as simulation_router
 from app.api.routes.explanation import router as explanation_router
 from app.api.routes.location import router as location_router
+from app.api.routes.chat import router as chat_router
+from app.api.routes.agronomy import router as agronomy_router
 from app.session_store import init_db
 
 
@@ -39,7 +41,7 @@ app = FastAPI(
     description=(
         "3D Digital Twin for Smarter, Collision-Free Crop Planning. "
         "Endpoints: POST /api/farmer · GET /api/crops · "
-        "POST /api/simulate · POST /api/explain"
+        "POST /api/simulate · POST /api/explain · POST /api/chat"
     ),
     lifespan=lifespan,
 )
@@ -59,7 +61,8 @@ app.include_router(crops_router)
 app.include_router(simulation_router)
 app.include_router(explanation_router)
 app.include_router(location_router)
-
+app.include_router(chat_router)
+app.include_router(agronomy_router)
 
 # ── Health check ──────────────────────────────────────────────────────────────
 @app.get("/", tags=["health"])

@@ -3,8 +3,14 @@
 Purely local: reads ``data/icar_reference_cache.json`` which is bundled with
 the repository and never fetched from a network.
 
-Provides baseline agronomic benchmarks for five primary crops:
-    Cotton, Soybean, Wheat, Groundnut, Maize
+Provides baseline agronomic benchmarks for 35+ crops across all three Indian
+agricultural seasons (Kharif, Rabi, Zaid):
+  - Cereals: Rice, Wheat, Maize, Bajra, Jowar, Ragi
+  - Pulses: Arhar, Moong, Urad, Gram, Lentil, Peas
+  - Oilseeds: Groundnut, Mustard, Sesame, Soybean, Sunflower
+  - Cash Crops: Cotton, Turmeric, Ginger
+  - Vegetables: Potato, Onion, Garlic, Tomato, Okra, Bitter Gourd, Cabbage, Cauliflower, Coriander
+  - Fruits: Banana, Papaya, Pomegranate, Grapes, Muskmelon, Watermelon
 
 Each record contains:
     crop_id             str     e.g. "cotton_kharif"

@@ -15,6 +15,8 @@ import type {
   ExplainRequest,
   ExplainResponse,
   LocationInfoResponse,
+  ChatRequest,
+  ChatResponse,
 } from "../types/api";
 
 const BASE_URL: string =
@@ -42,10 +44,11 @@ export async function fetchCandidateCrops(
   location: string,
   budget: number,
   soil_type: string,
-  water_availability: string
+  water_availability: string,
+  plot_size_ha: number = 1.0
 ): Promise<CropCandidate[]> {
   const { data } = await apiClient.get<CropCandidate[]>("/api/crops", {
-    params: { location, budget, soil_type, water_availability },
+    params: { location, budget, soil_type, water_availability, plot_size_ha },
   });
   return data;
 }
@@ -86,4 +89,10 @@ export function extractErrorMessage(err: unknown): string {
   if (ae?.response?.data?.detail) return ae.response.data.detail;
   if (ae?.message) return ae.message;
   return "An unexpected error occurred.";
+}
+
+/** POST /api/chat — Chatbot endpoint */
+export async function sendChatMessage(payload: ChatRequest): Promise<ChatResponse> {
+  const { data } = await apiClient.post<ChatResponse>("/api/chat", payload);
+  return data;
 }
