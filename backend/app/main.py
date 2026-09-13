@@ -18,6 +18,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.routes.auth import router as auth_router
 from app.api.routes.farmer_input import router as farmer_router
 from app.api.routes.crops import router as crops_router
 from app.api.routes.simulation import router as simulation_router
@@ -25,6 +26,7 @@ from app.api.routes.explanation import router as explanation_router
 from app.api.routes.location import router as location_router
 from app.api.routes.chat import router as chat_router
 from app.api.routes.agronomy import router as agronomy_router
+from app.api.routes.market_prices import router as market_prices_router
 from app.session_store import init_db
 
 
@@ -36,12 +38,10 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="AgriTwin API",
+    title="AgriSaathi API",
     version="0.1.0",
     description=(
-        "3D Digital Twin for Smarter, Collision-Free Crop Planning. "
-        "Endpoints: POST /api/farmer · GET /api/crops · "
-        "POST /api/simulate · POST /api/explain · POST /api/chat"
+        "AgriSaathi - 3D Digital Twin, Crop Planning, Market Intelligence, and Farmer Persistence API."
     ),
     lifespan=lifespan,
 )
@@ -56,6 +56,7 @@ app.add_middleware(
 )
 
 # ── Routers ───────────────────────────────────────────────────────────────────
+app.include_router(auth_router)
 app.include_router(farmer_router)
 app.include_router(crops_router)
 app.include_router(simulation_router)
@@ -63,6 +64,7 @@ app.include_router(explanation_router)
 app.include_router(location_router)
 app.include_router(chat_router)
 app.include_router(agronomy_router)
+app.include_router(market_prices_router)
 
 # ── Health check ──────────────────────────────────────────────────────────────
 @app.get("/", tags=["health"])

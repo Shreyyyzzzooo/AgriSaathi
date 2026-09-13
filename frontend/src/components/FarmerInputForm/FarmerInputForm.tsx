@@ -5,7 +5,7 @@
  * Interactive Soil Verification uses SoilGrids API.
  */
 
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import {
   submitFarmerInput,
   fetchCandidateCrops,
@@ -92,6 +92,7 @@ interface FarmerInputFormProps {
     input: FarmerRequest
   ) => void;
   lang: Language;
+  initialValues?: Partial<FarmerRequest> | null;
 }
 
 const SOIL_OPTIONS: { value: SoilType; label: string }[] = [
@@ -107,11 +108,12 @@ const WATER_OPTIONS: { value: WaterAvailability; label: string }[] = [
   { value: "rainfed",   label: "Rainfed Only" },
 ];
 
-export default function FarmerInputForm({ onSuccess, lang }: FarmerInputFormProps) {
-  const [form, setForm] = useState<Partial<FarmerRequest>>({
+export default function FarmerInputForm({ onSuccess, lang, initialValues }: FarmerInputFormProps) {
+  const [form, setForm] = useState<Partial<FarmerRequest>>(() => ({
     soil_type: "loamy",
     water_availability: "irrigated",
-  });
+    ...(initialValues || {}),
+  }));
   const [errors, setErrors]   = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -122,6 +124,18 @@ export default function FarmerInputForm({ onSuccess, lang }: FarmerInputFormProp
   const [soilConfirmed, setSoilConfirmed] = useState<boolean | null>(null);
 
   const t = (key: Parameters<typeof getTranslation>[1]) => getTranslation(lang, key);
+
+  // Sync form if initialValues change
+  useEffect(() => {
+    if (initialValues) {
+      setForm((prev) => ({
+        soil_type: "loamy",
+        water_availability: "irrigated",
+        ...prev,
+        ...initialValues,
+      }));
+    }
+  }, [initialValues]);
 
   const set = (key: keyof FarmerRequest, value: unknown) => {
     setForm((f) => ({ ...f, [key]: value }));

@@ -3,16 +3,25 @@ import os
 import json
 from typing import Any, Dict
 
-from google import genai
-from google.genai import types
+try:
+    from google import genai
+    from google.genai import types
+    _HAS_GENAI = True
+except ImportError:
+    genai = None  # type: ignore
+    types = None  # type: ignore
+    _HAS_GENAI = False
 
 logger = logging.getLogger(__name__)
 
-_client: genai.Client | None = None
+_client: Any = None
 
 
-def get_client() -> genai.Client:
+def get_client() -> Any:
     global _client
+
+    if not _HAS_GENAI or genai is None:
+        raise RuntimeError("google-genai package is not installed.")
 
     if _client is None:
         # Fallback to GEMINI_API_KEY if AGRONOMY_API_KEY is not provided

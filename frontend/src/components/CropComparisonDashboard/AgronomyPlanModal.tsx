@@ -1,4 +1,3 @@
-import React from "react";
 import type { AgronomyPlanResponse } from "../../types/api";
 
 interface AgronomyPlanModalProps {

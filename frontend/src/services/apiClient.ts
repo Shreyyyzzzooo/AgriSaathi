@@ -14,9 +14,18 @@ import type {
   SimulateResponse,
   ExplainRequest,
   ExplainResponse,
-  LocationInfoResponse,
   ChatRequest,
   ChatResponse,
+  MarketPriceResponse,
+  MarketLocationsResponse,
+  LocationInfoResponse,
+  User,
+  AuthResponse,
+  FarmerProfile,
+  FarmerProfileResponse,
+  ChatConversationItem,
+  ChatConversationDetail,
+  ChatMessageItem,
 } from "../types/api";
 
 const BASE_URL: string =
@@ -29,15 +38,74 @@ export const apiClient = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
-// ── Typed helpers ─────────────────────────────────────────────────────────────
+// Automatically attach Bearer auth token if present
+apiClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem("agrisaathi_token");
+  if (token && config.headers) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
-/** POST /api/farmer — register farmer session, returns session_id */
+// ── Auth Endpoints ───────────────────────────────────────────────────────────
+
+export async function registerUser(payload: {
+  username: string;
+  password: string;
+  preferred_language?: string;
+}): Promise<AuthResponse> {
+  const { data } = await apiClient.post<AuthResponse>("/api/auth/register", payload);
+  return data;
+}
+
+export async function loginUser(payload: {
+  username: string;
+  password: string;
+}): Promise<AuthResponse> {
+  const { data } = await apiClient.post<AuthResponse>("/api/auth/login", payload);
+  return data;
+}
+
+export async function fetchCurrentUser(): Promise<User> {
+  const { data } = await apiClient.get<User>("/api/auth/me");
+  return data;
+}
+
+export async function logoutUser(): Promise<{ status: string }> {
+  const { data } = await apiClient.post<{ status: string }>("/api/auth/logout");
+  return data;
+}
+
+export async function updateUserLanguage(language: string): Promise<{ status: string; preferred_language: string }> {
+  const { data } = await apiClient.put<{ status: string; preferred_language: string }>("/api/auth/language", {
+    language,
+  });
+  return data;
+}
+
+// ── Farmer Profile Endpoints ──────────────────────────────────────────────────
+
+/** GET /api/farmer/profile — fetch authenticated user's farm setup */
+export async function fetchFarmerProfile(): Promise<FarmerProfileResponse> {
+  const { data } = await apiClient.get<FarmerProfileResponse>("/api/farmer/profile");
+  return data;
+}
+
+/** PUT /api/farmer/profile — save or update farm profile */
+export async function updateFarmerProfile(payload: Partial<FarmerProfile>): Promise<FarmerProfileResponse> {
+  const { data } = await apiClient.put<FarmerProfileResponse>("/api/farmer/profile", payload);
+  return data;
+}
+
+/** POST /api/farmer — register farmer session and auto-upsert profile if logged in */
 export async function submitFarmerInput(
-  payload: FarmerRequest
+  payload: FarmerRequest & Partial<FarmerProfile>
 ): Promise<FarmerResponse> {
   const { data } = await apiClient.post<FarmerResponse>("/api/farmer", payload);
   return data;
 }
+
+// ── Crop & Simulation Endpoints ───────────────────────────────────────────────
 
 /** GET /api/crops — filtered, budget-flagged crop list */
 export async function fetchCandidateCrops(
@@ -83,16 +151,70 @@ export async function fetchLocationInfo(q: string): Promise<LocationInfoResponse
   return data;
 }
 
+// ── Persistent Chat Endpoints ─────────────────────────────────────────────────
+
+export async function fetchChatConversations(): Promise<ChatConversationItem[]> {
+  const { data } = await apiClient.get<ChatConversationItem[]>("/api/chat/conversations");
+  return data;
+}
+
+export async function createChatConversation(title?: string): Promise<ChatConversationItem> {
+  const { data } = await apiClient.post<ChatConversationItem>("/api/chat/conversations", {
+    title: title || "New Conversation",
+  });
+  return data;
+}
+
+export async function fetchChatConversationDetail(conversationId: string): Promise<ChatConversationDetail> {
+  const { data } = await apiClient.get<ChatConversationDetail>(`/api/chat/conversations/${conversationId}`);
+  return data;
+}
+
+export async function postChatMessage(
+  conversationId: string,
+  text: string,
+  sessionId?: string
+): Promise<ChatMessageItem> {
+  const { data } = await apiClient.post<ChatMessageItem>(
+    `/api/chat/conversations/${conversationId}/messages`,
+    { text, session_id: sessionId }
+  );
+  return data;
+}
+
+export async function deleteChatConversation(conversationId: string): Promise<{ status: string }> {
+  const { data } = await apiClient.delete<{ status: string }>(`/api/chat/conversations/${conversationId}`);
+  return data;
+}
+
+/** POST /api/chat — Legacy Chatbot endpoint */
+export async function sendChatMessage(payload: ChatRequest): Promise<ChatResponse> {
+  const { data } = await apiClient.post<ChatResponse>("/api/chat", payload);
+  return data;
+}
+
+// ── Market Prices Endpoints ───────────────────────────────────────────────────
+
+/** GET /api/market-prices/locations — Fetch available states and reporting districts */
+export async function fetchMarketLocations(): Promise<MarketLocationsResponse> {
+  const { data } = await apiClient.get<MarketLocationsResponse>("/api/market-prices/locations");
+  return data;
+}
+
+/** GET /api/market-prices — Fetch mandi market prices */
+export async function fetchMarketPrices(state: string, district?: string): Promise<MarketPriceResponse> {
+  const { data } = await apiClient.get<MarketPriceResponse>("/api/market-prices", {
+    params: { state, district: district || "All" },
+  });
+  return data;
+}
+
+// ── Error Helper ─────────────────────────────────────────────────────────────
+
 /** Extract a human-readable message from an Axios error */
 export function extractErrorMessage(err: unknown): string {
   const ae = err as AxiosError<{ detail?: string }>;
   if (ae?.response?.data?.detail) return ae.response.data.detail;
   if (ae?.message) return ae.message;
   return "An unexpected error occurred.";
-}
-
-/** POST /api/chat — Chatbot endpoint */
-export async function sendChatMessage(payload: ChatRequest): Promise<ChatResponse> {
-  const { data } = await apiClient.post<ChatResponse>("/api/chat", payload);
-  return data;
 }

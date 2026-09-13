@@ -1,12 +1,77 @@
-html, body, #root {
+@import url('https://fonts.googleapis.com/css2?family=Saira:ital,wght@0,100..900;1,100..900&display=swap');
+
+:root {
+  --bg-deep-navy: #04140F;
+  --bg-navy: #0A2A1E;
+  --bg-blue: #123D2A;
+  --bg-teal: #1B5238;
+  --bg-sky-blue: #276B46;
+  --bg-pale-sky: #358357;
+
+  --bg-gradient: linear-gradient(180deg, #04140F 0%, #0A2A1E 26%, #123D2A 48%, #1B5238 68%, #276B46 86%, #358357 100%);
+  --bg-dark-base: #061713;
+
+  --surface-glass: rgba(10, 34, 26, 0.72);
+  --surface-glass-subtle: rgba(196, 231, 238, 0.08);
+  --surface-glass-hover: rgba(16, 48, 38, 0.85);
+  --surface-card: rgba(8, 28, 22, 0.68);
+
+  --border-subtle: rgba(76, 255, 160, 0.18);
+  --border-medium: rgba(76, 255, 160, 0.35);
+  --border-glow: rgba(76, 255, 160, 0.6);
+
+  --neon-green: #4CFFA0;
+  --btn-primary-bg: linear-gradient(135deg, #D2DBCB, #6EDB9B);
+  --btn-primary-color: #06251A;
+
+  --text-primary: #F7FBF4;
+  --text-secondary: rgba(242, 247, 239, 0.84);
+  --text-muted: rgba(242, 247, 239, 0.52);
+
+  --font-family: "Saira", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+html, body {
   margin: 0;
   padding: 0;
   width: 100%;
-  height: 100%;
-  overflow: hidden; /* Prevent body from scrolling */
-  background-color: #0F172A; /* Match dashboard background */
+  min-height: 100%;
+  background-color: var(--bg-deep-navy);
+  font-family: var(--font-family);
+  color: var(--text-primary);
+  color-scheme: dark;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 * {
   box-sizing: border-box;
+  font-family: inherit;
+}
+
+/* Custom sleek scrollbar for entire AgriSaathi app */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #04140F;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1B5238;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #4CFFA0;
 }

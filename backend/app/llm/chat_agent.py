@@ -2,16 +2,25 @@ import logging
 import os
 from typing import Any, Dict, List
 
-from google import genai
-from google.genai import types
+try:
+    from google import genai
+    from google.genai import types
+    _HAS_GENAI = True
+except ImportError:
+    genai = None  # type: ignore
+    types = None  # type: ignore
+    _HAS_GENAI = False
 
 logger = logging.getLogger(__name__)
 
-_client: genai.Client | None = None
+_client: Any = None
 
 
-def get_client() -> genai.Client:
+def get_client() -> Any:
     global _client
+
+    if not _HAS_GENAI or genai is None:
+        raise RuntimeError("google-genai package is not installed.")
 
     if _client is None:
         api_key = os.environ.get("GEMINI_API_KEY")
@@ -31,7 +40,7 @@ def build_system_prompt(session_data: Dict[str, Any]) -> str:
     soil = session_data.get("soil_type", "Unknown")
     water = session_data.get("water_availability", "Unknown")
 
-    return f"""You are an intelligent, friendly agronomic assistant for the AgriTwin platform.
+    return f"""You are an intelligent, friendly agronomic assistant for the AgriSaathi platform.
 
 Your job is to answer the farmer's questions about crop selection, risk, budgeting, and farming practices.
 

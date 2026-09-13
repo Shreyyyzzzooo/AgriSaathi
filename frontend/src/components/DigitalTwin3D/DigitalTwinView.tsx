@@ -21,6 +21,7 @@
 import { useState, useCallback, useMemo } from "react";
 import PlotScene from "./PlotScene";
 import TimelineScrubber from "./TimelineScrubber";
+import { getCropVisualProfile } from "./CropVisualRegistry";
 import type { WeatherDay } from "../../types/api";
 
 // ── Mock fallback data (used when weatherByDay is empty) ──────────────────────
@@ -118,8 +119,21 @@ export default function DigitalTwinView({
   const sceneWeather = activeWeather.length > 0 ? activeWeather : baseWeather;
   const healthScore = calculateHealth(currentDay, sceneWeather);
   
+  const cropProfile = useMemo(() => getCropVisualProfile(cropType), [cropType]);
+
   // HUD Data
   const growthPercent = Math.min(100, Math.round((currentDay / Math.max(1, durationDays)) * 100));
+  const stageLabel =
+    growthPercent < 10
+      ? "Germination"
+      : growthPercent < 35
+      ? "Seedling"
+      : growthPercent < 70
+      ? "Vegetative"
+      : growthPercent < 88
+      ? "Flowering"
+      : "Mature Canopy";
+
   const todayWeather = sceneWeather[Math.min(currentDay, sceneWeather.length - 1)];
   const currentTemp = todayWeather?.temp_c.toFixed(1) || "--";
   
@@ -166,8 +180,8 @@ export default function DigitalTwinView({
           position: "absolute",
           top: "12px",
           left: "12px",
-          background: "rgba(15, 23, 42, 0.85)",
-          backdropFilter: "blur(4px)",
+          background: "rgba(15, 23, 42, 0.88)",
+          backdropFilter: "blur(6px)",
           border: "1px solid #334155",
           borderRadius: "10px",
           padding: "12px 16px",
@@ -178,14 +192,24 @@ export default function DigitalTwinView({
           display: "flex",
           flexDirection: "column",
           gap: "8px",
-          minWidth: "220px",
+          minWidth: "230px",
+          boxShadow: "0 4px 20px rgba(0,0,0,0.35)",
         }}
       >
-        <div style={{ color: "#F8FAFC", fontWeight: 700, fontSize: "14px", borderBottom: "1px solid #334155", paddingBottom: "6px", marginBottom: "4px" }}>
-          {cropType.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
-          {!weatherByDay || weatherByDay.length === 0 ? (
-            <span style={{ marginLeft: "6px", color: "#F59E0B", fontSize: "10px", fontWeight: 400 }}>[mock]</span>
-          ) : null}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #334155", paddingBottom: "6px", marginBottom: "4px" }}>
+          <span style={{ color: "#F8FAFC", fontWeight: 700, fontSize: "14px" }}>
+            {cropProfile.name}
+          </span>
+          <span style={{
+            background: growthPercent >= 88 ? "rgba(34, 197, 94, 0.2)" : "rgba(59, 130, 246, 0.2)",
+            color: growthPercent >= 88 ? "#4ADE80" : "#60A5FA",
+            padding: "2px 8px",
+            borderRadius: "12px",
+            fontSize: "10px",
+            fontWeight: 600,
+          }}>
+            {stageLabel}
+          </span>
         </div>
         
         <div style={{ display: "flex", justifyContent: "space-between" }}>
@@ -193,7 +217,7 @@ export default function DigitalTwinView({
           <strong style={{ color: "#E2E8F0" }}>{currentDay} / {durationDays}</strong>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <span>Growth</span>
+          <span>Growth Progress</span>
           <strong style={{ color: "#22C55E" }}>{growthPercent}%</strong>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between" }}>
@@ -226,11 +250,10 @@ export default function DigitalTwinView({
       <div
         style={{
           position: "absolute",
-          bottom: "16px",
-          left: "50%",
-          transform: "translateX(-50%)",
+          bottom: "24px",
+          right: "24px",
           zIndex: 10,
-          width: "clamp(300px, 70%, 600px)",
+          width: "400px",
         }}
       >
         <TimelineScrubber

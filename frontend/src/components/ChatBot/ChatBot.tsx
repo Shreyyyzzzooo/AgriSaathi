@@ -108,7 +108,7 @@ export function ChatBot({ sessionId }: ChatBotProps) {
       {isOpen ? (
         <div className="chatbot-window">
           <div className="chatbot-header">
-            <h4>AgriTwin Assistant</h4>
+            <h4>AgriSaathi Assistant</h4>
             <button className="close-btn" onClick={() => setIsOpen(false)}>
               ×
             </button>

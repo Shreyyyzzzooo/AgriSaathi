@@ -9,3 +9,4 @@ ibm-watsonx-ai
 shapely
 mpltern
 google-generativeai
+bcrypt

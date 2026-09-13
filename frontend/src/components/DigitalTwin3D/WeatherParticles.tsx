@@ -1,13 +1,8 @@
 /**
- * WeatherParticles — dynamic weather effects driven by daily weather data.
+ * WeatherParticles.tsx
  *
- * Rules (per api_contract.md condition field):
- *   rainfall_mm > 2.0  → animated vertical rain particle system
- *   temp_c > 35.0      → warm golden directional light + sun-glare tint
- *   condition == "stormy" → both rain particles and intense orange light
- *   drought/sunny dry  → ambient light dimmed to a dry, muted palette
- *
- * No external assets. Pure Three.js BufferGeometry Points + lights.
+ * Dynamic environmental lighting, sky atmosphere, rain streaks,
+ * and heat shimmer driven by daily simulation weather.
  */
 
 import { useRef, useMemo } from "react";
@@ -20,10 +15,10 @@ interface WeatherParticlesProps {
   plotSize: number;
 }
 
-const RAIN_COUNT = 400;
+const RAIN_COUNT = 500;
 const HEAT_PARTICLE_COUNT = 80;
 
-// ── Rain particle system ──────────────────────────────────────────────────────
+// ── Rain Particle System ──────────────────────────────────────────────────────
 
 function RainParticles({ plotSize }: { plotSize: number }) {
   const pointsRef = useRef<THREE.Points>(null);
@@ -34,20 +29,21 @@ function RainParticles({ plotSize }: { plotSize: number }) {
     const velocities = new Float32Array(RAIN_COUNT);
     for (let i = 0; i < RAIN_COUNT; i++) {
       positions[i * 3]     = (Math.random() - 0.5) * spread;
-      positions[i * 3 + 1] = Math.random() * 6;
+      positions[i * 3 + 1] = Math.random() * 8;
       positions[i * 3 + 2] = (Math.random() - 0.5) * spread;
-      velocities[i] = 0.04 + Math.random() * 0.04;
+      velocities[i] = 0.07 + Math.random() * 0.05;
     }
     return { positions, velocities };
   }, [spread]);
 
   useFrame(() => {
     if (!pointsRef.current) return;
-    const pos = pointsRef.current.geometry.attributes
-      .position as THREE.BufferAttribute;
+    const pos = pointsRef.current.geometry.attributes.position as THREE.BufferAttribute;
     for (let i = 0; i < RAIN_COUNT; i++) {
       let y = pos.getY(i) - velocities[i];
-      if (y < -0.2) y = 6 + Math.random() * 2;
+      if (y < -0.1) {
+        y = 7 + Math.random() * 2;
+      }
       pos.setY(i, y);
     }
     pos.needsUpdate = true;
@@ -62,17 +58,17 @@ function RainParticles({ plotSize }: { plotSize: number }) {
   return (
     <points ref={pointsRef} geometry={geometry}>
       <pointsMaterial
-        color="#A8D8EA"
-        size={0.04}
+        color="#B0BEC5"
+        size={0.06}
         transparent
-        opacity={0.7}
+        opacity={0.65}
         sizeAttenuation
       />
     </points>
   );
 }
 
-// ── Heat shimmer particles ────────────────────────────────────────────────────
+// ── Heat Shimmer Particles ────────────────────────────────────────────────────
 
 function HeatParticles({ plotSize }: { plotSize: number }) {
   const pointsRef = useRef<THREE.Points>(null);
@@ -83,22 +79,20 @@ function HeatParticles({ plotSize }: { plotSize: number }) {
     const velocities = new Float32Array(HEAT_PARTICLE_COUNT);
     for (let i = 0; i < HEAT_PARTICLE_COUNT; i++) {
       positions[i * 3]     = (Math.random() - 0.5) * spread;
-      positions[i * 3 + 1] = Math.random() * 2;
+      positions[i * 3 + 1] = Math.random() * 2.5;
       positions[i * 3 + 2] = (Math.random() - 0.5) * spread;
-      velocities[i] = 0.005 + Math.random() * 0.01;
+      velocities[i] = 0.006 + Math.random() * 0.008;
     }
     return { positions, velocities };
   }, [spread]);
 
   useFrame(() => {
     if (!pointsRef.current) return;
-    const pos = pointsRef.current.geometry.attributes
-      .position as THREE.BufferAttribute;
+    const pos = pointsRef.current.geometry.attributes.position as THREE.BufferAttribute;
     for (let i = 0; i < HEAT_PARTICLE_COUNT; i++) {
       let y = pos.getY(i) + velocities[i];
-      // Gentle horizontal drift
-      const x = pos.getX(i) + Math.sin(Date.now() * 0.001 + i) * 0.003;
-      if (y > 3) {
+      const x = pos.getX(i) + Math.sin(Date.now() * 0.001 + i) * 0.002;
+      if (y > 3.2) {
         y = 0;
         pos.setX(i, (Math.random() - 0.5) * spread);
       }
@@ -117,77 +111,81 @@ function HeatParticles({ plotSize }: { plotSize: number }) {
   return (
     <points ref={pointsRef} geometry={geometry}>
       <pointsMaterial
-        color="#FFD54F"
-        size={0.09}
+        color="#FFE082"
+        size={0.08}
         transparent
-        opacity={0.45}
+        opacity={0.4}
         sizeAttenuation
       />
     </points>
   );
 }
 
-// ── Main export ───────────────────────────────────────────────────────────────
+// ── Main Export ───────────────────────────────────────────────────────────────
 
-export default function WeatherParticles({
-  weather,
-  plotSize,
-}: WeatherParticlesProps) {
+export default function WeatherParticles({ weather, plotSize }: WeatherParticlesProps) {
   if (!weather) {
-    // No weather data — neutral lighting only
     return (
       <>
-        <ambientLight intensity={0.6} />
-        <directionalLight position={[5, 10, 5]} intensity={0.8} castShadow />
+        <ambientLight intensity={1.5} color="#FFFFFF" />
+        <hemisphereLight args={["#87CEEB", "#3E2723", 0.8]} />
+        <directionalLight
+          position={[6, 12, 6]}
+          intensity={2.5}
+          castShadow
+          shadow-mapSize={[1024, 1024]}
+          shadow-camera-left={-10}
+          shadow-camera-right={10}
+          shadow-camera-top={10}
+          shadow-camera-bottom={-10}
+          shadow-bias={-0.0005}
+        />
       </>
     );
   }
 
   const isRainy = weather.rainfall_mm > 2.0;
-  const isHot   = weather.temp_c > 35.0;
+  const isHot = weather.temp_c > 35.0;
   const isStormy = weather.condition === "stormy";
-  const isDry   = !isRainy && weather.condition === "sunny" && weather.temp_c < 30;
+  const isDry = !isRainy && weather.condition === "sunny" && weather.temp_c < 30;
 
-  // Ambient intensity: dim for drought/dry, boost for stormy
-  const ambientIntensity = isStormy ? 0.25 : isDry ? 0.35 : isRainy ? 0.55 : 0.65;
+  const ambientIntensity = isStormy ? 1.0 : isDry ? 1.5 : isRainy ? 1.2 : 1.8;
 
-  // Directional light colour: golden for heat, cool-blue for rain, warm-white normal
   const dirColor = isHot || isStormy
-    ? new THREE.Color("#FF8F00")
+    ? new THREE.Color("#FFA726")
     : isRainy
     ? new THREE.Color("#90CAF9")
-    : new THREE.Color("#FFF9C4");
+    : new THREE.Color("#FFFDE7");
 
-  const dirIntensity = isStormy ? 1.4 : isHot ? 1.2 : isRainy ? 0.5 : 0.9;
+  const dirIntensity = isStormy ? 2.5 : isHot ? 2.8 : isRainy ? 1.8 : 2.5;
 
-  // Sky background tint via fog
   const fogColor = isStormy
-    ? "#546E7A"
+    ? "#37474F"
     : isRainy
-    ? "#78909C"
+    ? "#546E7A"
     : isHot
-    ? "#FF8F00"
-    : "#E3F2FD";
+    ? "#795548"
+    : "#0F172A";
 
   return (
     <>
-      {/* Lighting */}
-      <ambientLight
-        intensity={ambientIntensity}
-        color={isDry ? "#9E9E9E" : "#FFFFFF"}
-      />
+      <ambientLight intensity={ambientIntensity} color={isDry ? "#BDBDBD" : "#FFFFFF"} />
+      <hemisphereLight args={["#B0BEC5", "#3E2723", isRainy ? 0.8 : 1.0]} />
       <directionalLight
-        position={isRainy ? [2, 8, 3] : [5, 12, 5]}
+        position={isRainy ? [3, 9, 4] : [7, 13, 6]}
         intensity={dirIntensity}
         color={dirColor}
         castShadow
-        shadow-mapSize={[512, 512]}
+        shadow-mapSize={[1024, 1024]}
+        shadow-camera-left={-10}
+        shadow-camera-right={10}
+        shadow-camera-top={10}
+        shadow-camera-bottom={-10}
+        shadow-bias={-0.0005}
       />
 
-      {/* Atmospheric fog tint */}
-      <fog attach="fog" args={[fogColor, 20, 60]} />
+      <fog attach="fog" args={[fogColor, 20, 55]} />
 
-      {/* Particles */}
       {(isRainy || isStormy) && <RainParticles plotSize={plotSize} />}
       {isHot && <HeatParticles plotSize={plotSize} />}
     </>

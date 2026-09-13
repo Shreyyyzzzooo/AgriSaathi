@@ -11,6 +11,7 @@ import type {
   AgronomyPlanResponse,
 } from "../../types/api";
 import AgronomyPlanModal from "./AgronomyPlanModal";
+import { useFarm } from "../../context/FarmContext";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const budgetVariant = (f: BudgetFlag) =>
@@ -70,6 +71,7 @@ export default function CropComparisonDashboard({
   const [selectedCropForPlan, setSelectedCropForPlan] = useState<string>("");
 
   const [error, setError]           = useState<string | null>(null);
+  const { setAiExplanation } = useFarm();
 
   const speakExplanation = (text: string) => {
     window.speechSynthesis.cancel();
@@ -114,7 +116,7 @@ export default function CropComparisonDashboard({
         const result = simulationResults[cropId];
         if (result) {
           setExplLoading(cropId);
-          fetchExplanation({ simulation_result: result, lang: lang === "all" ? "en" : lang })
+          fetchExplanation({ simulation_result: result, lang })
             .then((expl) => setExplanations((prev) => ({ ...prev, [cropId]: expl })))
             .catch((err) => setError(extractErrorMessage(err)))
             .finally(() => setExplLoading(null));
@@ -159,16 +161,14 @@ export default function CropComparisonDashboard({
     }
   };
 
-  const handleExplain = async (cropId: string) => {
+  const handleExplain = async (cropId: string): Promise<void> => {
     const result = simulationResults[cropId];
     if (!result) return;
     setExplLoading(cropId);
     try {
-      // If "all", we still fetch explanation in English or both based on what the backend supports.
-      // Wait, backend supports "all". So we pass "all".
-      const apiLang = lang === "all" ? "all" : lang;
-      const expl = await fetchExplanation({ simulation_result: result, lang: apiLang });
+      const expl = await fetchExplanation({ simulation_result: result, lang });
       setExplanations((prev) => ({ ...prev, [cropId]: expl }));
+      setAiExplanation({ cropId, explanation: expl });
     } catch (err) {
       setError(extractErrorMessage(err));
     } finally {
@@ -182,7 +182,7 @@ export default function CropComparisonDashboard({
     setAgronomyLoading(true);
     
     try {
-      const apiLang = lang === "all" ? "en" : lang;
+      const apiLang = lang;
       const res = await fetch(`http://localhost:8000/api/agronomy/plan`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -213,9 +213,9 @@ export default function CropComparisonDashboard({
           onClick={handleSimulate}
           disabled={selected.size === 0 || simLoading}
           style={{
-            background: selected.size > 0 ? "#16A34A" : "#1E293B",
+            background: selected.size > 0 ? "#16A34A" : "rgba(8, 22, 26, 0.7)",
             border: "none", borderRadius: 8, padding: "9px 18px",
-            color: selected.size > 0 ? "#fff" : "#475569",
+            color: selected.size > 0 ? "#fff" : "rgba(242,247,239,0.4)",
             fontSize: 13, fontWeight: 700, cursor: selected.size > 0 ? "pointer" : "not-allowed",
             display: "flex", alignItems: "center", gap: 6,
           }}
@@ -233,8 +233,8 @@ export default function CropComparisonDashboard({
             value={lang}
             onChange={(e) => setLang(e.target.value as Language)}
             style={{
-              background: "#1E293B",
-              border: "1px solid #334155",
+              background: "rgba(8, 22, 26, 0.7)",
+              border: "1px solid rgba(76, 255, 160, 0.2)",
               borderRadius: 6,
               padding: "4px 8px",
               color: "#94A3B8",
@@ -273,10 +273,10 @@ export default function CropComparisonDashboard({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               style={{
-                width: "100%", boxSizing: "border-box" as const,
-                background: "#1E293B", border: "1px solid #334155", borderRadius: 8,
-                padding: "8px 12px 8px 32px", color: "#F1F5F9", fontSize: 13, outline: "none",
-              }}
+              width: "100%", boxSizing: "border-box" as const,
+              background: "rgba(8, 22, 26, 0.7)", border: "1px solid rgba(76,255,160,0.2)", borderRadius: 8,
+              padding: "8px 12px 8px 32px", color: "#F1F5F9", fontSize: 13, outline: "none",
+            }}
             />
             {search && (
               <button
@@ -293,10 +293,10 @@ export default function CropComparisonDashboard({
           <button
             onClick={() => setShowFilters((v) => !v)}
             style={{
-              background: showFilters ? "#3B82F6" : "#1E293B",
-              border: `1px solid ${showFilters ? "#3B82F6" : "#334155"}`,
+              background: showFilters ? "rgba(76,255,160,0.25)" : "rgba(8, 22, 26, 0.7)",
+              border: `1px solid ${showFilters ? "#4CFFA0" : "rgba(76,255,160,0.2)"}`,
               borderRadius: 8, padding: "8px 14px",
-              color: showFilters ? "#fff" : "#94A3B8",
+              color: showFilters ? "#4CFFA0" : "#94A3B8",
               fontSize: 13, fontWeight: 600, cursor: "pointer",
               display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" as const,
             }}
@@ -319,8 +319,8 @@ export default function CropComparisonDashboard({
         {showFilters && (
           <div style={{
             marginTop: 10, display: "flex", flexWrap: "wrap" as const, gap: 10,
-            background: "#0F172A", border: "1px solid #1E293B",
-            borderRadius: 10, padding: "12px 14px",
+            background: "rgba(8, 22, 26, 0.6)", border: "1px solid rgba(76,255,160,0.15)",
+          borderRadius: 10, padding: "12px 14px",
           }}>
             {/* Season filter */}
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -329,10 +329,10 @@ export default function CropComparisonDashboard({
                 <button key={s}
                   onClick={() => setFilterSeason(s)}
                   style={{
-                    background: filterSeason === s ? "#3B82F6" : "#1E293B",
-                    border: "1px solid #334155", borderRadius: 6, padding: "4px 10px",
-                    color: filterSeason === s ? "#fff" : "#94A3B8",
-                    fontSize: 12, cursor: "pointer", fontWeight: filterSeason === s ? 700 : 400,
+                    background: filterSeason === s ? "rgba(76,255,160,0.25)" : "rgba(8, 22, 26, 0.7)",
+                  border: "1px solid rgba(76,255,160,0.2)", borderRadius: 6, padding: "4px 10px",
+                  color: filterSeason === s ? "#4CFFA0" : "#94A3B8",
+                  fontSize: 12, cursor: "pointer", fontWeight: filterSeason === s ? 700 : 400,
                   }}
                 >
                   {s === "all" ? "All" : s === "kharif" ? "🌧️ Kharif" : s === "rabi" ? "❄️ Rabi" : "☀️ Zaid"}
@@ -349,10 +349,10 @@ export default function CropComparisonDashboard({
                 <button key={b}
                   onClick={() => setFilterBudget(b)}
                   style={{
-                    background: filterBudget === b ? "#3B82F6" : "#1E293B",
-                    border: "1px solid #334155", borderRadius: 6, padding: "4px 10px",
-                    color: filterBudget === b ? "#fff" : "#94A3B8",
-                    fontSize: 12, cursor: "pointer", fontWeight: filterBudget === b ? 700 : 400,
+                    background: filterBudget === b ? "rgba(76,255,160,0.25)" : "rgba(8, 22, 26, 0.7)",
+                  border: "1px solid rgba(76,255,160,0.2)", borderRadius: 6, padding: "4px 10px",
+                  color: filterBudget === b ? "#4CFFA0" : "#94A3B8",
+                  fontSize: 12, cursor: "pointer", fontWeight: filterBudget === b ? 700 : 400,
                   }}
                 >
                   {b === "all" ? "All" : b === "within_budget" ? "✅ Within" : b === "marginal" ? "⚠️ Marginal" : "❌ Over"}
@@ -381,8 +381,8 @@ export default function CropComparisonDashboard({
       {visibleCrops.length === 0 ? (
         <div style={{
           textAlign: "center", padding: "48px 24px",
-          color: "#475569", fontSize: 14,
-          border: "1px dashed #334155", borderRadius: 12,
+          color: "rgba(242,247,239,0.4)", fontSize: 14,
+          border: "1px dashed rgba(76,255,160,0.2)", borderRadius: 12,
         }}>
           <div style={{ fontSize: 32, marginBottom: 8 }}>🌱</div>
           <div style={{ fontWeight: 600, color: "#64748B" }}>No crops match your filters</div>
@@ -409,15 +409,15 @@ export default function CropComparisonDashboard({
               key={crop.crop_id}
               onClick={() => toggleSelect(crop.crop_id)}
               style={{
-                background: "#1E293B",
-                border: `2px solid ${isSelected ? "#22C55E" : isOptimal ? "#F59E0B" : "#334155"}`,
-                borderRadius: 12,
-                padding: 16,
-                cursor: "pointer",
-                transition: "border-color 0.15s, box-shadow 0.15s",
-                boxShadow: isSelected ? "0 0 0 3px rgba(34,197,94,0.15)" : "none",
-                position: "relative" as const,
-                opacity: isInSeason ? 1 : 0.75,
+                background: "linear-gradient(135deg, rgba(10, 34, 26, 0.85), rgba(6, 23, 19, 0.9))",
+              border: `2px solid ${isSelected ? "#4CFFA0" : isOptimal ? "#F59E0B" : "rgba(76,255,160,0.2)"}`,
+              borderRadius: 12,
+              padding: 16,
+              cursor: "pointer",
+              transition: "border-color 0.15s, box-shadow 0.15s",
+              boxShadow: isSelected ? "0 0 0 3px rgba(76,255,160,0.2)" : "none",
+              position: "relative" as const,
+              opacity: isInSeason ? 1 : 0.75,
               }}
             >
               {/* Optimal badge */}
@@ -430,7 +430,7 @@ export default function CropComparisonDashboard({
               {/* Header */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginTop: isOptimal ? 8 : 0 }}>
                 <div>
-                  <div style={{ color: "#F1F5F9", fontWeight: 700, fontSize: 15 }}>
+                  <div style={{ color: "#F7FBF4", fontWeight: 700, fontSize: 15 }}>
                     {seasonEmoji[crop.season] ?? "🌱"} {crop.name}
                   </div>
                   <div style={{ color: "#64748B", fontSize: 11, marginTop: 2 }}>
@@ -488,8 +488,8 @@ export default function CropComparisonDashboard({
                       { label: "p90",  value: result.stats.p90,  color: "#3B82F6" },
                     ].map(({ label, value, color }) => (
                       <div key={label} style={{
-                        background: "#0F172A", borderRadius: 8,
-                        padding: "6px 8px", textAlign: "center" as const,
+                        background: "rgba(8, 22, 26, 0.7)", borderRadius: 8,
+                      padding: "6px 8px", textAlign: "center" as const,
                       }}>
                         <div style={{ fontSize: 10, color: "#64748B" }}>{label}</div>
                         <div style={{ fontSize: 13, fontWeight: 700, color }}>
@@ -505,10 +505,16 @@ export default function CropComparisonDashboard({
                   <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                     {/* Explain button */}
                     <button
-                      onClick={(e) => { e.stopPropagation(); handleExplain(crop.crop_id); onCropSelected(crop.crop_id, result); }}
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        handleExplain(crop.crop_id).then(() => {
+                          // After explanation loads, navigate to simulation with AI context
+                          onCropSelected(crop.crop_id, result);
+                        });
+                      }}
                       style={{
                         flex: 1,
-                        background: "#1E3A5F", border: "1px solid #3B82F6",
+                        background: "rgba(6, 20, 50, 0.6)", border: "1px solid rgba(76,130,220,0.4)",
                         borderRadius: 8, padding: "7px 0",
                         color: "#93C5FD", fontSize: 12, cursor: "pointer",
                         display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
@@ -523,23 +529,22 @@ export default function CropComparisonDashboard({
                     <button
                       onClick={(e) => { e.stopPropagation(); handleFetchAgronomyPlan(crop.crop_id); }}
                       style={{
-                        flex: 1,
-                        background: "#064E3B", border: "1px solid #10B981",
+                        background: "rgba(4, 50, 30, 0.7)", border: "1px solid rgba(16,185,129,0.45)",
                         borderRadius: 8, padding: "7px 0",
                         color: "#6EE7B7", fontSize: 12, cursor: "pointer",
                         display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
                       }}
                     >
-                      🧪 Care Plan
+                    🧪 Care Plan
                     </button>
                   </div>
 
                   {/* Explanation box */}
                   {expl && (
                     <div style={{
-                      marginTop: 10, background: "#0F172A",
+                      marginTop: 10, background: "rgba(4, 20, 15, 0.7)",
                       borderRadius: 8, padding: "10px 12px",
-                      border: "1px solid #1E3A5F",
+                      border: "1px solid rgba(76, 255, 160, 0.15)",
                     }}>
                       {/* Dynamically get text corresponding to selected lang */}
                       {expl[`text_${lang}` as keyof typeof expl] && typeof expl[`text_${lang}` as keyof typeof expl] === "string" && (
@@ -578,7 +583,7 @@ export default function CropComparisonDashboard({
         <AgronomyPlanModal
           plan={agronomyPlan}
           cropName={selectedCropForPlan}
-          lang={lang === "all" ? "en" : lang}
+          lang={lang}
           isLoading={agronomyLoading}
           onClose={() => {
             setShowAgronomyModal(false);
