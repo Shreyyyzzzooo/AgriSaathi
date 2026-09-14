@@ -1,4 +1,4 @@
-# AgriSaathi (AgriTwin) — 3D Digital Twin for Smarter, Collision-Free Crop Planning
+# AgriSaathi — Smarter decisions. Healthier fields. Better harvests.
 
 A production-grade, full-stack web application purpose-built to empower Indian farmers with data-driven crop planning decisions. The platform aggregates live satellite weather data from NASA POWER, real-time mandi (wholesale market) prices from Agmarknet, agronomic benchmarks from the Indian Council of Agricultural Research (ICAR), and ISRIC SoilGrids soil composition data into a single unified view.
 
@@ -38,7 +38,7 @@ agritwin/
 │   │   │   └── soilgrids.py           ISRIC SoilGrids API + fallback
 │   │   ├── llm/
 │   │   │   ├── prompts/               10 language prompt templates
-│   │   │   ├── explanation_generator.py IBM Granite client + offline fallback
+│   │   │   ├── explanation_generator.py IBM watsonx.ai client + offline fallback
 │   │   │   └── translation.py         Language routing
 │   │   ├── simulation/
 │   │   │   ├── crop_models.py         Yield × Revenue × Profit math
