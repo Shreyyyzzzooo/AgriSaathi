@@ -27,16 +27,7 @@ async def get_location_info(q: str):
         raise HTTPException(status_code=404, detail=f"Location '{q}' not found.")
         
     try:
-        # BYPASS ISRIC SOILGRIDS API TEMPORARILY:
-        # To restore the real API, uncomment the line below and delete the mock dictionary.
-        # soil = await fetch_soil_properties(lat, lon)
-        soil = {
-           "clay_pct": 30.0,
-           "sand_pct": 40.0,
-           "silt_pct": 30.0,
-           "ph": 6.5,
-           "detected_type": "loamy"
-        }
+        soil = await fetch_soil_properties(lat, lon)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except httpx.TimeoutException:

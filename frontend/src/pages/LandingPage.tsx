@@ -599,7 +599,6 @@ export default function LandingPage({ onLogin, onExplore }: LandingPageProps) {
                 </button>
               )}
 
-              <p className="preview-note">This is a design preview — logging in opens your digital twin workspace.</p>
               {submitted && <p className="confirm-msg">✓ Logging in as {username || "Farmer"}...</p>}
             </form>
           </main>

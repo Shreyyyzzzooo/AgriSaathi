@@ -1,88 +1,70 @@
-# AgriTwin — 3D Digital Twin for Smarter, Collision-Free Crop Planning
+# AgriSaathi (AgriTwin) — 3D Digital Twin for Smarter, Collision-Free Crop Planning
 
-A full-stack web application for Indian farmers: enter farm parameters, fetch live NASA POWER
-weather and Agmarknet mandi prices, load ICAR crop benchmarks, run Monte Carlo yield simulations,
-visualise a procedural 3D growing crop in React Three Fiber, and generate bilingual (English/Hindi)
-explanations via IBM watsonx.ai Granite.
+A production-grade, full-stack web application purpose-built to empower Indian farmers with data-driven crop planning decisions. The platform aggregates live satellite weather data from NASA POWER, real-time mandi (wholesale market) prices from Agmarknet, agronomic benchmarks from the Indian Council of Agricultural Research (ICAR), and ISRIC SoilGrids soil composition data into a single unified view.
+
+Key features include:
+- A procedural **3D digital twin** of the farmer's field evolving in real-time through five crop growth stages via React Three Fiber.
+- A vectorised **Monte Carlo simulation engine** running up to 500 stochastic scenarios per crop to produce profit distributions and downside risk analysis.
+- **Market crash detection** safeguarding against price collapse when over 45% of district peers grow the same crop.
+- **IBM watsonx.ai-powered multilingual explanations** providing plain-language insights in 10 Indian languages (English, Hindi, Kannada, Marathi, Bengali, Tamil, Telugu, Gujarati, Punjabi, Malayalam).
+- A persistent, session-aware **conversational AI chatbot** for open-ended agronomic queries.
+- An AI-generated personalised **agronomy plan** with tailored fertiliser and pesticide recommendations based on soil context.
+- A full **authentication system** supporting multi-user access with bcrypt password hashing and token-based session management.
 
 ---
 
 ## Repository layout
 
-```
+```text
 agritwin/
 ├── backend/
 │   ├── app/
 │   │   ├── main.py                    FastAPI entry point (CORS, lifespan, routers)
 │   │   ├── api/
 │   │   │   └── routes/
-│   │   │       ├── farmer_input.py    POST /api/farmer
+│   │   │       ├── auth.py            User registration, login, JWT token auth
+│   │   │       ├── farmer_input.py    POST /api/farmer (Session & Profile)
 │   │   │       ├── crops.py           GET  /api/crops
 │   │   │       ├── simulation.py      POST /api/simulate
-│   │   │       ├── explain.py         POST /api/explain   (legacy)
-│   │   │       └── explanation.py     POST /api/explanation (LLM layer)
+│   │   │       ├── explanation.py     POST /api/explanation (LLM layer)
+│   │   │       ├── location.py        GET  /api/location-info (SoilGrids)
+│   │   │       ├── market_prices.py   GET  /api/market-prices
+│   │   │       ├── chat.py            Persistent chatbot APIs
+│   │   │       └── agronomy.py        POST /api/agronomy/plan
 │   │   ├── data_sources/
 │   │   │   ├── nasa_power.py          Async NASA POWER weather + fallback
 │   │   │   ├── agmarknet.py           Mandi prices + fallback
-│   │   │   └── icar_soil.py           Local ICAR crop benchmarks
+│   │   │   ├── icar_soil.py           Local ICAR crop benchmarks
+│   │   │   └── soilgrids.py           ISRIC SoilGrids API + fallback
 │   │   ├── llm/
-│   │   │   ├── prompts/
-│   │   │   │   ├── explain_en.txt     English Granite prompt template
-│   │   │   │   └── explain_hi.txt     Hindi (Devanagari) prompt template
-│   │   │   ├── explanation_generator.py  IBM Granite client + offline fallback
-│   │   │   └── translation.py         Language routing (en / hi / both)
+│   │   │   ├── prompts/               10 language prompt templates
+│   │   │   ├── explanation_generator.py IBM Granite client + offline fallback
+│   │   │   └── translation.py         Language routing
 │   │   ├── simulation/
 │   │   │   ├── crop_models.py         Yield × Revenue × Profit math
 │   │   │   ├── monte_carlo.py         Vectorised NumPy 500-run engine
 │   │   │   └── diversification.py     Market-crash risk (>45% peer saturation)
 │   │   ├── models/
-│   │   │   └── schemas.py             Pydantic v2 request/response models
-│   │   └── session_store.py           SQLite-backed session store
-│   ├── data/
-│   │   ├── icar_benchmarks.json       10 crops with agronomic benchmarks
-│   │   ├── icar_reference_cache.json  5 primary crops (Cotton/Soy/Wheat/Groundnut/Maize)
-│   │   ├── mock_district_planting_data.json  District peer planting fractions
-│   │   └── sample_past_season.json    Historical season reference records
-│   ├── tests/
-│   │   ├── test_api.py                39 API integration tests
-│   │   ├── test_data_sources.py       22 data-layer fallback tests
-│   │   ├── test_simulation.py         37 Monte Carlo + diversification tests
-│   │   └── test_llm.py                31 LLM explanation tests
+│   │   │   └── schemas.py             Pydantic v2 schemas
+│   │   └── session_store.py           SQLite-backed auth & session store
+│   ├── data/                          (JSON fallbacks and benchmarks)
+│   ├── tests/                         129 integration and unit tests
 │   ├── requirements.txt
 │   └── .env.example
 ├── frontend/
 │   ├── src/
-│   │   ├── App.tsx
-│   │   ├── main.tsx
-│   │   ├── pages/
-│   │   │   └── DashboardPage.tsx      Split-screen layout (3D twin + wizard)
+│   │   ├── pages/                     Dashboard, LandingPage, MarketPrices, etc.
 │   │   ├── components/
-│   │   │   ├── DigitalTwin3D/
-│   │   │   │   ├── DigitalTwinView.tsx  Top-level 3D wrapper (mock fallback)
-│   │   │   │   ├── PlotScene.tsx        R3F Canvas — props-only, zero fetch
-│   │   │   │   ├── GroundMesh.tsx       Displaced low-poly soil plane
-│   │   │   │   ├── CropGrowthStage.tsx  Instanced 10×10 mesh grid (4 stages)
-│   │   │   │   ├── WeatherParticles.tsx Rain/heat particles + adaptive lighting
-│   │   │   │   └── TimelineScrubber.tsx Day slider + play/pause + p50/p10 toggle
-│   │   │   ├── FarmerInputForm/
-│   │   │   │   └── FarmerInputForm.tsx  Step 1 form with inline validation
-│   │   │   ├── CropComparisonDashboard/
-│   │   │   │   ├── CropComparisonDashboard.tsx  Crop cards + badges + histogram
-│   │   │   │   └── ProfitHistogram.tsx           Recharts profit distribution
-│   │   │   └── ui.tsx                  SkeletonCard, ErrorBanner, Badge, Spinner
+│   │   │   ├── DigitalTwin3D/         R3F Canvas, GroundMesh, InstancedCropField
+│   │   │   ├── FarmerInputForm/       Multi-step parameter collection
+│   │   │   ├── CropComparisonDashboard/ Simulation results and histograms
+│   │   │   └── ChatBot/               Persistent AI chatbot interface
 │   │   ├── services/
-│   │   │   └── apiClient.ts           Axios client — 4 typed API functions
+│   │   │   └── apiClient.ts           Axios client
 │   │   └── types/
 │   │       └── api.ts                 TypeScript mirrors of frozen API contract
 │   ├── package.json
-│   ├── tsconfig.json
-│   ├── vite.config.ts
 │   └── .env.example
-├── docs/
-│   └── api_contract.md               Frozen API schema (single source of truth)
-├── scripts/
-│   └── setup.sh                      One-command dev environment setup
-├── agritwin-plan.md                  Implementation plan (all sub-tasks tracked)
 └── README.md
 ```
 
@@ -113,7 +95,7 @@ python -m venv .venv
 source .venv/bin/activate
 
 pip install -r requirements.txt
-cp .env.example .env   # then fill in WATSONX_APIKEY, WATSONX_PROJECT_ID
+cp .env.example .env   # Fill in WATSONX_APIKEY, WATSONX_PROJECT_ID, GEMINI_API_KEY
 ```
 
 #### Frontend
@@ -121,7 +103,7 @@ cp .env.example .env   # then fill in WATSONX_APIKEY, WATSONX_PROJECT_ID
 ```bash
 cd frontend
 npm install
-cp .env.example .env   # set VITE_BACKEND_URL=http://localhost:8000 if needed
+cp .env.example .env   # VITE_BACKEND_URL=http://localhost:8000
 ```
 
 ---
@@ -133,7 +115,8 @@ Open **two terminals**:
 **Terminal 1 — Backend**
 ```bash
 cd backend
-source .venv/bin/activate   # or .venv\Scripts\activate on Windows
+# Windows: .venv\Scripts\activate
+# macOS/Linux: source .venv/bin/activate
 uvicorn app.main:app --reload --port 8000
 ```
 
@@ -157,11 +140,16 @@ npm run dev
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET`  | `/` | Health check — `{"status":"ok"}` |
-| `POST` | `/api/farmer` | Register farmer session → `session_id` |
+| `POST` | `/api/auth/register` | Register new user |
+| `POST` | `/api/auth/login` | Login user to receive JWT token |
+| `POST` | `/api/farmer` | Register farmer session (updates profile if logged in) |
 | `GET`  | `/api/crops` | Filter crops by soil/water/budget |
 | `POST` | `/api/simulate` | Monte Carlo simulation (500 runs/crop) |
-| `POST` | `/api/explain` | Granite AI bilingual explanation (legacy) |
-| `POST` | `/api/explanation` | Granite AI bilingual explanation (LLM layer) |
+| `POST` | `/api/explanation` | Granite AI bilingual explanation (10 languages) |
+| `GET`  | `/api/location-info` | Fetch ISRIC SoilGrids data by location string |
+| `POST` | `/api/agronomy/plan` | Generate AI agronomy plan (fertiliser/pesticides) |
+| `POST` | `/api/market-prices` | Fetch live/historical mandi prices |
+| `GET/POST` | `/api/chat/*` | Persistent conversational chatbot APIs |
 
 Full frozen schemas: [`docs/api_contract.md`](docs/api_contract.md)
 
@@ -177,21 +165,29 @@ WATSONX_APIKEY=your_api_key_here
 WATSONX_PROJECT_ID=your_project_id_here
 WATSONX_URL=https://us-south.ml.cloud.ibm.com
 
+# Google Maps Geocoding API (required for universal location search)
+GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
+
 # Agmarknet commodity prices (optional — static fallback used if absent)
 AGMARKNET_API_KEY=your_agmarknet_key_here
+
+# Gemini Chatbot / Agronomy Agent
+GEMINI_API_KEY=your_gemini_api_key_here
 
 # Server port (default: 8000)
 PORT=8000
 ```
 
 > **All external services degrade gracefully.** The app runs fully offline:
-> - NASA POWER → 20-day bundled fallback weather
-> - Agmarknet → bundled modal price table
-> - IBM Granite → grounded f-string explanation (English + Hindi)
+> - NASA POWER → Bundled fallback weather JSON
+> - Agmarknet → Bundled modal price table
+> - IBM Granite → Grounded f-string explanations (10 languages)
+> - SoilGrids → Loamy soil defaults
+> - Google Maps → Nagpur (central India) coordinate fallback
 
 ---
 
-## Running tests
+## Running tests (129 tests)
 
 ```bash
 cd backend   # from repo root
@@ -201,7 +197,7 @@ source .venv/bin/activate
 python -m pytest tests/ -v
 
 # Individual suites
-python -m pytest tests/test_api.py         # 39 API integration tests
+python -m pytest tests/test_api.py          # 39 API integration tests
 python -m pytest tests/test_data_sources.py # 22 data-layer fallback tests
 python -m pytest tests/test_simulation.py   # 37 Monte Carlo tests
 python -m pytest tests/test_llm.py          # 31 LLM explanation tests
@@ -211,27 +207,26 @@ python -m pytest tests/test_llm.py          # 31 LLM explanation tests
 
 ## Architecture overview
 
-```
+```text
 Browser (React + R3F)
   │
-  ├─ DashboardPage (split screen)
-  │    ├─ LEFT:  DigitalTwinView → PlotScene (R3F Canvas)
-  │    │           ├─ GroundMesh       (displaced PlaneGeometry)
-  │    │           ├─ CropGrowthStage  (InstancedMesh 10×10, 4 stages)
-  │    │           └─ WeatherParticles (BufferGeometry Points)
-  │    └─ RIGHT: FarmerInputForm → CropComparisonDashboard
-  │                └─ ProfitHistogram (Recharts BarChart)
+  ├─ DigitalTwinView → PlotScene (R3F Canvas)
+  │    ├─ GroundMesh (Displaced PlaneGeometry)
+  │    ├─ InstancedCropField (High-performance GPU instancing)
+  │    └─ WeatherParticles (Dynamic environment)
+  │
+  ├─ CropComparisonDashboard (Charts and AI explanations)
+  ├─ ChatBot (Persistent context-aware agent)
   │
   └─ apiClient.ts (Axios → http://localhost:8000)
         │
         └─ FastAPI Backend
-             ├─ POST /api/farmer     → SQLite session store
-             ├─ GET  /api/crops      → icar_soil.py (filter + budget_flag)
+             ├─ POST /api/farmer     → SQLite session & auth store
              ├─ POST /api/simulate   → asyncio.gather(nasa_power, agmarknet)
              │                          → monte_carlo.simulate_crops()
              │                          → diversification.check_diversification()
-             └─ POST /api/explanation → llm/explanation_generator.py
-                                         → IBM Granite (or offline f-string)
+             ├─ POST /api/explanation → IBM Granite (or offline f-string)
+             └─ POST /api/chat        → RAG/Session-aware AI agent
 ```
 
 ---
@@ -241,12 +236,13 @@ Browser (React + R3F)
 | Layer | Technology |
 |-------|-----------|
 | Frontend | React 18, TypeScript 5, Vite 5 |
-| 3D twin | React Three Fiber, Three.js (procedural primitives only) |
+| 3D Twin | React Three Fiber, Three.js (Procedural primitives) |
 | Charts | Recharts |
 | Backend | FastAPI, Python 3.11+ |
-| Simulation | NumPy (vectorised 500-run Monte Carlo) |
+| Simulation | NumPy (Vectorised 500-run Monte Carlo) |
 | Weather | NASA POWER Agroclimatology API |
+| Soil | ISRIC SoilGrids REST API |
 | Prices | Agmarknet (with static fallback) |
 | Crop data | ICAR reference benchmarks (bundled JSON) |
-| LLM | IBM watsonx.ai — `ibm/granite-13b-chat-v2` |
-| Session | SQLite (stdlib `sqlite3`) |
+| Auth/Session | SQLite (stdlib `sqlite3`), bcrypt |
+| LLM | IBM watsonx.ai (`ibm/granite-13b-chat-v2`), Gemini |

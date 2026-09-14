@@ -1,0 +1,717 @@
+================================================================================
+        IBM BOB — TECHNOLOGY CONTRIBUTION WRITEUP
+   Project : AgriSaathi (AgriTwin) — 3D Digital Twin for Smarter Crop Planning
+   Category: Full-Stack AI Agricultural Decision Support Platform
+   Hackathon Submission — IBM Bob Usage Documentation
+================================================================================
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 1 — PROJECT CONTEXT AND OVERVIEW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+AgriSaathi — internally called AgriTwin — is a production-grade, full-stack web
+application purpose-built to empower Indian farmers with data-driven crop
+planning decisions. The platform aggregates live satellite weather data from NASA
+POWER, real-time mandi (wholesale market) prices from Agmarknet, agronomic
+benchmarks from the Indian Council of Agricultural Research (ICAR), and SoilGrids
+soil composition data from ISRIC, and synthesises all of these into a single
+unified view that includes:
+
+  • A 3D procedural digital twin of the farmer's field that evolves in real-time
+    through five crop growth stages, driven by the actual simulation weather.
+  • A vectorised Monte Carlo simulation engine running up to 500 stochastic
+    scenarios per crop, producing profit distributions, loss probabilities, and
+    risk-ranked recommendations.
+  • A market crash detection layer that flags when over 45% of district peers are
+    growing the same crop, protecting farmers from price collapse.
+  • IBM watsonx.ai-powered multilingual explanations of simulation results in
+    10 Indian languages: English, Hindi, Kannada, Marathi, Bengali, Tamil,
+    Telugu, Gujarati, Punjabi, and Malayalam.
+  • A persistent, session-aware conversational AI chatbot for open-ended
+    agronomic queries.
+  • An AI-generated personalised agronomy plan with fertiliser and pesticide
+    recommendations tailored to the farmer's soil, water, and crop.
+  • A full authentication system supporting multi-user access with bcrypt
+    password hashing and token-based session management.
+
+The project was started from a completely empty workspace — not a single source
+file existed at the beginning. Every directory, every module, every configuration
+file, every test, and every documentation document was created using IBM Bob as
+the primary development AI assistant. IBM Bob was engaged for architectural
+decision-making, code generation, debugging, iterative refinement, and quality
+assurance throughout the entire development lifecycle.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 2 — IBM BOB USAGE: ARCHITECTURE AND PLANNING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Before a single line of code was written, IBM Bob was used in Plan Mode to design
+the complete system architecture. This phase was not merely a high-level sketch
+— it produced a precise, binding specification that governed every subsequent
+implementation decision.
+
+2.1  FROZEN API CONTRACT
+------------------------
+IBM Bob designed and authored the frozen API contract documented in
+docs/api_contract.md. This document defines every endpoint, every field name,
+every field type, every nullable vs required distinction, and every validation
+rule. Key decisions that Bob helped reason through and then lock in include:
+
+  - budget_inr is an integer (not a float) in both the POST /api/farmer body
+    and the GET /api/crops query parameter — preventing floating-point rupee
+    arithmetic errors.
+  - The histogram_bins field in CropStats is always exactly 11 float values
+    (10 equal-width profit bins produce 11 bin edges) — a constraint enforced
+    by both the Pydantic validator and the NumPy simulation engine.
+  - monte_carlo_runs is an optional field on POST /api/simulate with a default
+    of 200 and a hard cap of 500 — balancing responsiveness with statistical
+    accuracy.
+  - The PlotScene 3D component receives zero API calls and is driven exclusively
+    by props passed down from the simulation results — decoupling the 3D
+    rendering from the data layer entirely.
+  - Session store uses Python's stdlib sqlite3 — no external ORM or Redis
+    dependency — so sessions survive uvicorn restarts with minimal complexity.
+  - The WeatherDay shape (day, rainfall_mm, temp_c, condition) is the single
+    source of truth used by both the backend Pydantic schema and the TypeScript
+    api.ts interface, eliminating frontend/backend type drift.
+
+2.2  SUBTASK IMPLEMENTATION PLAN
+---------------------------------
+IBM Bob produced a structured 10-subtask implementation plan in agritwin-plan.md
+that broke the entire project into sequential, verifiable milestones:
+
+  Sub-Task 1  — Monorepo skeleton, tooling, and stub files
+  Sub-Task 2  — Backend Pydantic schemas + SQLite session store
+  Sub-Task 3  — Data layer: NASA POWER, Agmarknet, ICAR benchmarks
+  Sub-Task 4  — Monte Carlo simulation engine
+  Sub-Task 5  — All FastAPI routers wired to services
+  Sub-Task 6  — IBM watsonx.ai Granite explanation service
+  Sub-Task 7  — TypeScript types + API client
+  Sub-Task 8  — Frontend UI step components
+  Sub-Task 9  — React Three Fiber 3D PlotScene digital twin
+  Sub-Task 10 — Integration and end-to-end smoke tests
+
+Each sub-task had explicit expected outcomes, a numbered todo list, and relevant
+context. Bob tracked completion status and verified preconditions before advancing
+to the next sub-task, preventing integration issues that commonly arise when
+layers are built out of order.
+
+2.3  MONOREPO LAYOUT AND TOOLING
+---------------------------------
+IBM Bob designed and scaffolded the complete monorepo directory structure — a
+Vite 5 + React 18 + TypeScript 5 frontend colocated with a FastAPI Python 3.11+
+backend under a single repository root. This included:
+
+  - Vite configuration (vite.config.ts) with the backend proxy configuration.
+  - TypeScript strict configuration (tsconfig.json).
+  - Python requirements.txt with all dependencies.
+  - Both .env.example files for backend (WATSONX_APIKEY, WATSONX_PROJECT_ID,
+    WATSONX_URL, AGMARKNET_API_KEY, GEMINI_API_KEY) and frontend
+    (VITE_BACKEND_URL).
+  - Root README.md with architecture diagrams, local setup instructions, test
+    run commands, and the full API endpoint reference.
+  - A one-command setup script (scripts/setup.sh) for macOS/Linux environments.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 3 — IBM BOB USAGE: COMPLETE BACKEND IMPLEMENTATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+3.1  PYDANTIC V2 SCHEMAS (backend/app/models/schemas.py)
+---------------------------------------------------------
+IBM Bob wrote all Pydantic v2 request and response models in strict conformance
+with the frozen API contract. These include:
+
+  FarmerRequest   — location (str), plot_size_ha (float), soil_type (enum),
+                    water_availability (enum), budget_inr (int)
+  FarmerResponse  — session_id (UUID v4), status ("created")
+  CropCandidate   — crop_id, name, season, duration_days, budget_flag (enum)
+  SimulateRequest — session_id, selected_crops (list[str]),
+                    monte_carlo_runs (Optional[int], default 200, max 500)
+  SimulateResponse — results (list[CropResult])
+  CropResult      — crop_id, stats (CropStats), weather_by_day (list[WeatherDay])
+  CropStats       — mean, p10, p50, p90, histogram_bins (list[float] of 11),
+                    histogram_counts (list[int] of 10)
+  WeatherDay      — day (int), rainfall_mm (float), temp_c (float),
+                    condition ("sunny"|"rainy"|"cloudy"|"stormy")
+  ExplainRequest  — simulation_result (CropResult), lang (str)
+  ExplainResponse — crop_id, text_en, text_hi, reasoning_bullets (list[str])
+  Auth schemas    — UserRegisterRequest, UserLoginRequest, AuthResponse,
+                    UserResponse, LanguageUpdateRequest
+  Chat schemas    — ChatRequest, ChatResponse, ChatConversationItem,
+                    ChatConversationDetail, ChatMessageItem,
+                    CreateConversationRequest, SendMessageRequest
+  AgronomyPlanRequest — session_id, crop_id, lang
+
+All models use model_validator (Pydantic v2), not the deprecated v1 @validator,
+ensuring compatibility with the ibm-watsonx-ai SDK's modern Pydantic requirement.
+
+3.2  SQLITE-BACKED SESSION AND USER STORE (backend/app/session_store.py)
+------------------------------------------------------------------------
+IBM Bob implemented a comprehensive persistence layer using Python's stdlib
+sqlite3 — no external ORM, no Redis, no additional service dependencies. The
+module initialises a sessions.db database on first import and creates four
+relational tables with proper foreign key constraints:
+
+  sessions     — id (TEXT PK), data (TEXT JSON blob)
+                 Stores farmer plot parameters keyed by UUID session_id.
+  users        — id (TEXT PK), username (COLLATE NOCASE), password_hash,
+                 preferred_language, created_at
+                 Full user registration table with case-insensitive usernames.
+  user_sessions — token (TEXT PK), user_id (FK → users), created_at
+                 Token-based auth sessions with cascade delete.
+  conversations — id (TEXT PK), user_id (FK), title, created_at, updated_at
+  messages     — id (TEXT PK), conversation_id (FK), sender, text, created_at
+
+Bob implemented the following store functions: init_db(), save_session(),
+get_session(), create_user(), get_user_by_username(), verify_password(),
+create_user_session(), delete_user_session(), get_current_user_from_token(),
+update_user_language(), create_conversation(), get_user_conversations(),
+get_conversation(), add_chat_message(), get_conversation_messages(),
+delete_conversation(), update_conversation_title(), get_farmer_profile().
+
+Password hashing uses bcrypt via the bcrypt package, with a graceful fallback
+to stdlib hashlib if bcrypt is unavailable — ensuring the system runs in
+constrained environments without installation failures.
+
+3.3  DATA SOURCE LAYER
+----------------------
+IBM Bob implemented all four external data source modules:
+
+  NASA POWER Client (backend/app/data_sources/nasa_power.py):
+    Fetches four agroclimatological parameters — PRECTOTCORR (daily rainfall
+    in mm), T2M_MAX (maximum 2-metre temperature), T2M_MIN (minimum 2-metre
+    temperature), and ALLSKY_SFC_SW_DWN (all-sky solar irradiance in MJ/m²/day)
+    — from the NASA POWER Agroclimatology REST API for a 120-day sowing window.
+    Bob implemented exponential back-off retry logic (3 attempts: 1s, 2s, 4s
+    delays) with a 3-second connect+read timeout per attempt. On final failure,
+    the module transparently loads a bundled fallback JSON file containing
+    realistic kharif-season records for central India. The output DailyWeather
+    dataclass carries day_index, rainfall_mm, temp_avg_c, heat_stress (bool,
+    True when temp > 35°C), and solar_mj_m2.
+
+  Agmarknet Client (backend/app/data_sources/agmarknet.py):
+    Fetches real-time mandi modal prices for crop commodities with a static
+    fallback price table covering all 10+ supported crops. Returns a
+    CropPriceSeries object per crop containing modal_price_quintal and
+    price_variance — both consumed directly by the Monte Carlo engine.
+
+  ICAR Benchmark Loader (backend/app/data_sources/icar_soil.py):
+    Loads and indexes the bundled ICAR benchmarks JSON (backend/data/
+    icar_benchmarks.json) covering 10+ crops: wheat_rabi, rice_kharif,
+    cotton_kharif, maize_kharif, soybean_kharif, chickpea_rabi, mustard_rabi,
+    sugarcane, groundnut_kharif, and onion_rabi. Each benchmark record contains
+    crop_id, name, season, duration_days, yield_mean_qtl_ha, yield_std_qtl_ha,
+    cost_inr_ha, water_req, and soil compatibility. The get_crop() function
+    supports O(1) lookup by crop_id.
+
+  SoilGrids Client (backend/app/data_sources/soilgrids.py):
+    Queries the ISRIC SoilGrids REST API for actual soil composition at a given
+    latitude/longitude: clay_pct, sand_pct, silt_pct, and pH. This data feeds
+    the /api/location-info endpoint to auto-populate the farmer's soil type
+    field in the frontend form. A fallback dictionary returns loamy defaults
+    if SoilGrids is rate-limiting or unavailable.
+
+3.4  MONTE CARLO SIMULATION ENGINE
+(backend/app/simulation/monte_carlo.py and crop_models.py)
+-----------------------------------------------------------
+IBM Bob designed and implemented the core quantitative engine — a fully
+vectorised NumPy Monte Carlo simulation that runs up to 500 stochastic
+scenarios per crop in a single function call with zero Python-level iteration
+over simulation runs.
+
+The mathematical model per crop is:
+
+  Step 1 — Lognormal Mandi Price Sampling:
+    Modal price and price variance from Agmarknet are fitted to a lognormal
+    distribution using method-of-moments (mu = log(mean) - sigma²/2, where
+    sigma² = log(1 + CV²)). 500 price samples are drawn simultaneously using
+    rng.lognormal(mean=mu, sigma=sigma, size=N) — a shape-(N,) NumPy array.
+    If market_crash_risk is True, all price samples are multiplied by 0.85
+    (the MARKET_CRASH_DEPRESSION constant) before further computation.
+
+  Step 2 — Stochastic Weather Perturbations:
+    Rain perturbation is sampled from Uniform(-25%, +25%) of the actual rain
+    fraction — capturing inter-seasonal variability. Heatwave frequency
+    perturbation is sampled from Uniform(-5pp, +5pp) applied additively.
+    Both are shape-(N,) arrays, giving each simulation run its own weather
+    realisation.
+
+  Step 3 — Vectorised Yield Computation (crop_models.py):
+    yield[N] = base_yield * soil_multiplier(soil_type)
+               * water_stress_factor(water_availability)
+               * heat_stress_penalty(perturbed_heat_frac[N])
+               * (1 + rain_bonus[N] - storm_penalty[N])
+    Soil multipliers: loamy=1.00, clay=0.92, sandy=0.82, silt=0.95, black=1.05
+    Water stress: irrigated=1.00, partial=0.85, rainfed=0.68
+    Heat penalty: 1.0 - 0.30 × heat_frac, clamped to [0.40, 1.00]
+
+  Step 4 — Revenue and Profit:
+    revenue[N] = yield[N] × price[N]
+    profit[N]  = revenue[N] - crop.cost_inr_ha
+    If crop cost exceeds farmer budget: profit[N] *= 0.70 (BUDGET_RANK_PENALTY)
+
+  Step 5 — Summary Statistics:
+    mean_profit, p10_profit, p50_profit, p90_profit via numpy percentile.
+    loss_probability = fraction of 500 runs where profit < 0.
+    10-bin profit histogram (11 bin edges) formatted as Recharts-ready dicts.
+    recommendation_score = p50 adjusted for budget_exceeded and crash_risk
+    flags, used to rank crops from best to worst for the farmer.
+
+3.5  DIVERSIFICATION AND MARKET CRASH ENGINE
+(backend/app/simulation/diversification.py)
+--------------------------------------------
+IBM Bob implemented a unique market saturation safeguard. The module reads
+backend/data/mock_district_planting_data.json — a dataset of what fraction of
+farmers in each Indian district are currently growing each crop. If more than
+45% of district peers are planting the same crop, the market_crash_risk flag is
+set to True for that crop, and a price depression factor of 0.85× is applied
+across all 500 simulated Mandi price draws. The farmer is also shown a clear
+saturation warning in the AI explanation. This feature directly addresses a
+well-documented failure mode in Indian agriculture where mass adoption of a
+single crop by neighbouring farmers floods the local mandi, collapsing prices
+for everyone. The module maintains a hardcoded city-to-district mapping covering
+20 major Indian agricultural districts across Maharashtra, Punjab, MP, Rajasthan,
+AP, Karnataka, Gujarat, UP, and Bihar.
+
+3.6  FASTAPI ROUTER LAYER (backend/app/api/routes/)
+----------------------------------------------------
+IBM Bob implemented all backend API route handlers:
+
+  POST /api/farmer (farmer_input.py):
+    Validates FarmerRequest, generates a UUID v4 session_id, persists the farmer
+    profile to SQLite, and returns FarmerResponse. Returns 422 on validation
+    failures with Pydantic error details.
+
+  GET /api/crops (crops.py):
+    Loads ICAR benchmarks and fetches Agmarknet prices for the given location.
+    For each crop, computes the budget_flag: within_budget if cost_inr_ha ≤
+    budget, marginal if cost ≤ budget × 1.2, and over_budget otherwise. Returns
+    a sorted list of CropCandidate objects filtered by soil and water suitability.
+
+  POST /api/simulate (simulation.py):
+    The most complex route. Performs the following orchestration:
+    1. Resolves the farmer's session from SQLite (404 if not found).
+    2. Geocodes the location string to lat/lon via the nasa_power geocoder.
+    3. Loads ICAR records for all selected crops (422 if any crop_id is unknown).
+    4. Concurrently fetches NASA POWER weather AND Agmarknet prices using
+       asyncio.gather — the two network calls run in parallel, not sequentially.
+    5. Calls check_diversification() for market crash flags.
+    6. Builds CropBenchmark objects combining ICAR + price + crash data.
+    7. Calls simulate_crops() (the Monte Carlo engine) with up to 500 runs.
+    8. Trims weather_by_day to each crop's exact duration_days.
+    9. Assembles and returns SimulateResponse with all CropResult objects.
+
+  POST /api/explanation (explanation.py):
+    Calls the IBM watsonx.ai explanation pipeline with context from the
+    simulation result and optional extra_context (budget, soil, crash risk).
+
+  POST /api/agronomy/plan (agronomy.py + agronomy_agent.py):
+    Generates a structured fertiliser and pesticide recommendation plan for a
+    specific crop and farmer context. Returns a JSON object with:
+    fertilizers[]: name, timing, dosage, reasoning per application event.
+    pesticides[]:  name, target pest/disease, dosage, reasoning.
+    general_advice: one paragraph of location- and soil-specific guidance.
+    The prompt specifies the exact JSON schema and requests the language matching
+    the farmer's selected language code.
+
+  POST /api/chat, GET/POST/DELETE /api/chat/conversations/* (chat.py):
+    A full persistent conversational AI system. Each conversation is stored in
+    SQLite with full message history. The system-level prompt is dynamically
+    constructed from the farmer's session data (location, plot size, soil type,
+    water availability, budget) so every response is contextually grounded.
+    The /messages endpoint: stores the user message → looks up full conversation
+    history → fetches farmer context → calls the AI model → stores and returns
+    the assistant's reply. Title auto-generation from the first message is also
+    implemented. All conversation endpoints require authentication via the
+    Depends(get_current_user) dependency.
+
+  POST /api/auth/register, /login, GET /me, POST /logout, PUT /language:
+    Complete authentication system with bcrypt password hashing, token-based
+    session management, case-insensitive username uniqueness enforcement, and
+    preferred language persistence per user.
+
+  GET /api/location-info (location.py):
+    Accepts a location string query parameter, resolves it to lat/lon, and
+    queries SoilGrids for clay/sand/silt percentages and pH. Returns a
+    LocationInfoResponse with the detected soil type classification. Used by
+    the frontend FarmerInputForm to auto-populate soil type based on location.
+
+  POST /api/market-prices (market_prices.py):
+    Returns formatted Agmarknet price data for the frontend Market Prices
+    Dashboard, including historical price trends per commodity.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 4 — IBM BOB USAGE: IBM WATSONX.AI GRANITE INTEGRATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The IBM watsonx.ai integration is the most technically nuanced component of the
+project, and it was designed and implemented entirely by IBM Bob.
+
+4.1  EXPLANATION GENERATOR (backend/app/llm/explanation_generator.py)
+----------------------------------------------------------------------
+This module is responsible for generating plain-language interpretations of the
+Monte Carlo simulation results. IBM Bob designed it with the following
+architecture:
+
+  Credential Management:
+    API key is read from WATSONX_APIKEY (also accepts WATSONX_API_KEY for
+    compatibility), WATSONX_PROJECT_ID, and WATSONX_URL environment variables
+    via python-dotenv. The module imports ibm_watsonx_ai lazily (inside the
+    _live_explain function) to avoid import-time failures in environments where
+    the package is installed but credentials are absent.
+
+  Model Selection:
+    Primary model: meta-llama/llama-3-3-70b-instruct running on the IBM
+    watsonx.ai platform. The _MODEL_PREFERENCES list allows fallback model IDs
+    to be iterated in preference order if the primary is unavailable. Generation
+    parameters: max_new_tokens=400, temperature=0.2, stop_sequences=["###",
+    "\n\n\n"] — low temperature to keep explanations grounded and factual.
+
+  Prompt Template System:
+    IBM Bob wrote 10 language-specific prompt template files (explain_en.txt,
+    explain_hi.txt, explain_kn.txt, explain_mr.txt, explain_bn.txt,
+    explain_ta.txt, explain_te.txt, explain_gu.txt, explain_pa.txt,
+    explain_ml.txt) stored in backend/app/llm/prompts/. Each template uses
+    Python str.format()-compatible placeholders for: {crop_name}, {mean_profit},
+    {p10_profit}, {p90_profit}, {loss_prob}, {weather_summary},
+    {diversification_status}, {budget}, {soil_type}. The English prompt reads:
+    "You are AgriTwin, an agricultural decision expert... Explain in 3 concise,
+    jargon-free bullet points why this crop is recommended over others for a
+    farmer with a {budget} budget on {soil_type} soil. Ground every statement
+    strictly in these numbers. Do not invent unlisted statistics."
+
+  Context Builder:
+    The _build_context() function extracts and formats all template variables
+    from the simulation result dict. It computes the dominant weather condition
+    across the entire weather_by_day array (max count), average daily rainfall,
+    formats INR values as "₹X.X lakh/ha" or "₹X,XXX/ha" depending on
+    magnitude, and sets the diversification_status string to either a warning
+    or a confirmation of no saturation.
+
+  Response Parser:
+    The _parse_bullets() function separates the Granite response into a
+    prose paragraph (non-bullet lines joined) and a list of up to 5 reasoning
+    bullets (lines beginning with "-" or "•").
+
+4.2  MULTILINGUAL OFFLINE FALLBACK
+------------------------------------
+IBM Bob implemented a deterministic offline fallback that activates when
+WATSONX_APIKEY is absent or the API call raises any exception. The fallback
+generates fully grounded f-string explanations in all 10 languages — not
+generic templates, but mathematically precise statements derived directly from
+the simulation metrics:
+
+  English: "{name} is projected to deliver a mean profit of ₹X.X lakh/ha
+  based on 500 Monte Carlo simulations. Even in the worst 10% of weather and
+  price scenarios, profit holds at ₹X.X lakh/ha, while the best 10% of
+  outcomes reach ₹X.X lakh/ha. [⚠ Market saturation warning if applicable.]
+  At a ₹X,XXX budget on {soil} soil, this crop offers acceptable/elevated
+  downside risk (X.X% probability of loss)."
+
+  The same structure is replicated in native script for Hindi (Devanagari),
+  Kannada, Marathi, Bengali, Tamil, Telugu, Gujarati, Punjabi, and Malayalam —
+  all with correct regional numeric formatting and native agricultural
+  terminology. The fallback response has the exact same JSON structure
+  (crop_id, text_{lang}, reasoning_bullets) as the live Granite response, so
+  the frontend never receives a different shape regardless of API availability.
+
+4.3  TRANSLATION ROUTING LAYER (backend/app/llm/translation.py)
+----------------------------------------------------------------
+A clean public entry point (explain_crop()) that validates the lang parameter,
+routes to generate_explanation(), and guarantees that reasoning_bullets is
+always a non-empty list — filling in grounded defaults if the AI response
+omits them. Also exports is_hindi() (Devanagari character detection) and
+language_label() helpers used by the frontend i18n layer.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 5 — IBM BOB USAGE: FULL FRONTEND IMPLEMENTATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+5.1  TYPESCRIPT TYPE SYSTEM (frontend/src/types/api.ts)
+-------------------------------------------------------
+IBM Bob mirrored the entire Pydantic backend schema as TypeScript interfaces,
+maintaining byte-for-byte field name parity with the Python models. This
+ensures that any API response can be consumed by the frontend without
+transformation and that TypeScript's static analysis catches contract violations
+at build time — not at runtime.
+
+5.2  API CLIENT (frontend/src/services/apiClient.ts)
+-----------------------------------------------------
+A centralised Axios-based typed client with functions for every backend endpoint.
+The base URL is read from import.meta.env.VITE_BACKEND_URL, defaulting to
+http://localhost:8000. Includes extractErrorMessage() — a utility that handles
+FastAPI's 422 Pydantic validation error format as well as generic HTTP errors.
+
+5.3  GLOBAL STATE MANAGEMENT (frontend/src/context/FarmContext.tsx)
+-------------------------------------------------------------------
+A React Context-based global state manager handling: auth state (user object,
+token, isAuthenticated), language preference, farmer session_id, simulation
+results, selected crops, and 3D scene state. Exports useFarm() for use across
+all page and component files. Also contains login() and register() async
+functions that call the auth API and persist the token.
+
+5.4  LANDING PAGE (frontend/src/pages/LandingPage.tsx)
+------------------------------------------------------
+A polished animated landing page with:
+  - A full-screen splash sequence: "AgriSaathi" title fills the screen, holds,
+    then flies and scales down into its resting position in the navbar header
+    using getBoundingClientRect() + CSS transform animation — respects
+    prefers-reduced-motion for accessibility.
+  - A login/register form panel with controlled form state, password show/hide
+    toggle, inline validation, and loading state.
+  - Background video support with autoplay fallback.
+  - Auth error display with contextual messages.
+
+5.5  FARMER INPUT FORM (frontend/src/components/FarmerInputForm/FarmerInputForm.tsx)
+-------------------------------------------------------------------------------------
+A multi-step input form collecting: location (text, triggers /api/location-info
+auto-detection of soil type and coordinates), plot_size_ha, soil_type, and
+water_availability. Integrates the location-info endpoint to auto-populate the
+soil type field when the user enters their location, reducing manual input.
+Connects to POST /api/farmer on submission and advances to the crop selection
+phase.
+
+5.6  3D DIGITAL TWIN — REACT THREE FIBER SCENE
+(frontend/src/components/DigitalTwin3D/)
+-----------------------------------------------
+IBM Bob built the most visually ambitious part of the project: a real-time 3D
+field simulation using React Three Fiber and Three.js. The component tree is:
+
+  DigitalTwinView.tsx — top-level wrapper with mock fallback for offline use.
+  PlotScene.tsx       — R3F Canvas with PerspectiveCamera, OrbitControls, and
+                        Suspense boundary. Strictly props-only, zero API calls.
+  GroundMesh.tsx      — Displaced PlaneGeometry soil plane whose colour shifts
+                        from dry terracotta to moist dark earth based on recent
+                        rainfall data passed as a prop.
+  CropGrowthStage.tsx — Facade delegating to InstancedCropField.tsx.
+  InstancedCropField.tsx — High-performance GPU-instanced crop field renderer:
+
+    The renderer uses THREE.InstancedMesh to render hundreds of individual
+    plants (stems, leaves, and mature features like cobs, bolls, flower heads,
+    and fruits) in a single draw call per geometry type. Each plant's position,
+    height, rotation, and leaf droop is derived from a deterministic hash of
+    its row/column index (sine-based pseudo-random) — no random() calls that
+    would cause flickering on re-render.
+
+    Five growth stages are modelled with distinct geometry progressions:
+      bare       → nothing rendered (early soil stage)
+      seedling   → small shoots, 2–3 leaves, 15% of mature height
+      vegetative → rapid height growth, expanding leaf canopy
+      flowering  → near full height, tassels/flowers emerge, leaf canopy closes
+      mature     → full height, cobs/bolls/heads/fruits visible, dense canopy
+
+    For each stage, height ratio, active leaf count, leaf scale, and feature
+    scale are all computed as smooth continuous functions of growth progress
+    (not hard jumps), giving the visual a natural, organic feel. Leaf placement
+    uses the golden angle (137.5°) for natural spiral phyllotaxis. Health score
+    (0–100) drives a chlorotic stress color shift (green → yellow-brown) and a
+    height/leaf suppression multiplier. Wind sway is implemented via useFrame
+    with sinusoidal groupRef.rotation perturbation scaled by a per-crop
+    windSensitivity profile parameter.
+
+    The CropVisualRegistry (CropVisualRegistry.ts) contains a profile database
+    for each supported crop — including base color, mature color, stem color,
+    mature height, rows × columns per field, leaf count, leaf length/width,
+    leaf droop angle, feature type (cob/boll/head/fruit/none), feature geometry,
+    feature color, features per plant, feature attachment ratio, and wind
+    sensitivity. This enables visually distinct rendering for wheat, rice,
+    cotton, maize, soybean, chickpea, mustard, sugarcane, groundnut, and onion.
+
+  WeatherParticles.tsx — Dynamic environmental lighting and particle systems:
+    • Rain particles (500 points): BufferGeometry with per-particle Y-velocity
+      sampling, animated downward in useFrame with wrap-around when hitting the
+      ground. Active for rainfall_mm > 2.0 or condition == "stormy".
+    • Heat shimmer particles (80 points): Rising translucent yellow-amber
+      particles with sinusoidal lateral drift. Active for temp_c > 35°C.
+    • Dynamic directional light intensity and color: warm orange-amber under
+      heat/storm, cool blue under rain, bright white-yellow under clear skies.
+    • Scene fog added for stormy and rainy conditions (grey), hot conditions
+      (brown dust haze).
+    • Hemisphere light adjusts sky/ground component per weather condition.
+
+  TimelineScrubber.tsx — A day-range slider (0 to cropDurationDays) with
+    play/pause animation, per-day weather condition display, and a p50/p10
+    scenario toggle to let farmers explore the conservative vs optimistic
+    simulation outcomes on the 3D scene.
+
+5.7  CROP COMPARISON DASHBOARD
+(frontend/src/components/CropComparisonDashboard/)
+---------------------------------------------------
+IBM Bob built the dashboard that presents simulation results side-by-side:
+
+  CropComparisonDashboard.tsx — Selects crops for simulation, calls
+    runSimulation() via the API client, receives results, and renders a card
+    per crop. Each card shows: crop name, season emoji, budget_flag badge
+    (green/amber/red), mean profit, p10–p90 profit range, loss probability,
+    market crash risk warning, and an AI explanation panel. A language selector
+    allows the farmer to switch explanation language live. An "Agronomy Plan"
+    button triggers the AI plan generation modal.
+
+  ProfitHistogram.tsx — A Recharts BarChart rendering the 10-bin profit
+    distribution histogram from simulation results, with color-coded bins
+    (red for loss territory, green for profit).
+
+  AgronomyPlanModal.tsx — A modal dialog that displays the structured
+    fertiliser/pesticide plan from the /api/agronomy/plan endpoint, formatted
+    as readable application-timeline cards.
+
+5.8  MARKET PRICES DASHBOARD (frontend/src/components/MarketPrices/)
+---------------------------------------------------------------------
+Real-time Agmarknet mandi price visualisation showing commodity price cards
+with trend indicators for the farmer's location and selected crops.
+
+5.9  CHATBOT (frontend/src/components/ChatBot/)
+------------------------------------------------
+A full persistent conversational AI interface with: conversation list sidebar,
+create/delete conversation, scrollable message history, streaming-style text
+display, session-aware context injection, and multilingual response support.
+
+5.10  INTERNATIONALISATION (frontend/src/i18n.ts)
+-------------------------------------------------
+A type-safe translation dictionary covering all 10 supported languages for all
+UI labels, button text, and status messages. The Language type union constrains
+lang values to the supported set at compile time.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 6 — IBM BOB USAGE: AUTOMATED TEST SUITE (129 TESTS)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+IBM Bob wrote a comprehensive 129-test suite alongside the implementation,
+ensuring that every layer was verifiable in isolation and in integration.
+
+  test_api.py (39 tests):
+    Full integration tests using FastAPI's TestClient and httpx.ASGITransport.
+    Covers: GET /, POST /api/farmer (valid + invalid inputs), GET /api/crops
+    (budget flag classification, soil filtering), POST /api/simulate (with
+    mocked NASA POWER and Agmarknet so no real HTTP occurs in CI), POST
+    /api/explanation (live and fallback paths). Uses unittest.mock.patch to
+    inject mock DailyWeather objects and price series, ensuring reproducible
+    results with zero external dependencies in CI/CD.
+
+  test_data_sources.py (22 tests):
+    Validates all fallback behaviours: NASA POWER returns DailyWeather list
+    from fallback JSON when the API is unreachable, Agmarknet returns correct
+    static prices when no API key is configured, ICAR loader returns all 10+
+    crops correctly. Confirms caching behaviour and data shape.
+
+  test_simulation.py (37 tests):
+    Monte Carlo engine correctness: histogram_bins always has exactly 11 values,
+    p10 ≤ p50 ≤ p90 ordering is invariant across seeds, loss_probability is in
+    [0, 1], budget_exceeded penalty lowers profit correctly, market_crash_risk
+    applies the 0.85× price depression, diversification threshold boundary
+    (exactly 45% vs 45.1%) fires the crash flag. All tested with a fixed
+    numpy.random.seed for determinism.
+
+  test_llm.py (31 tests):
+    Explanation structure: response dict always has crop_id, reasoning_bullets
+    (non-empty, ≥3 items), and the correct language key (text_en, text_hi, etc.).
+    Offline fallback activates when WATSONX_APIKEY is unset. Hindi text contains
+    Devanagari characters (validated by is_hindi()). All 10 language codes
+    produce valid, non-empty output. Bullet parser correctly separates prose from
+    bullet lines.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 7 — SIGNIFICANCE OF IBM BOB TO THE PROJECT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+7.1  ZERO-TO-PRODUCTION IN A SINGLE DEVELOPER WORKFLOW
+-------------------------------------------------------
+AgriSaathi is not a small project. It spans two programming languages (Python
+and TypeScript), eight backend modules, fourteen frontend components, a 3D
+rendering engine, four external API integrations, a full authentication system,
+a conversational AI layer, a quantitative simulation engine, and a 129-test
+suite. Building this as a solo developer without IBM Bob would have required
+weeks of foundational work before reaching any meaningful feature. IBM Bob
+compressed that timeline dramatically by generating production-quality code with
+correct typing, proper error handling, and architectural consistency from the
+very first file.
+
+7.2  CROSS-STACK TYPE COHERENCE
+---------------------------------
+One of the most insidious problems in full-stack development is type drift —
+where the Python backend returns a field called rainfall_mm but the TypeScript
+frontend expects rainfallMm, or where a nullable field is treated as required.
+IBM Bob maintained exact type-level consistency between Pydantic v2 schemas,
+TypeScript interfaces, and the frozen API contract documentation across all three
+representations simultaneously. This meant that TypeScript compilation succeeded
+with zero type errors after integration, not after rounds of debugging.
+
+7.3  PRODUCTION-GRADE RESILIENCE BY DEFAULT
+--------------------------------------------
+Every external dependency in AgriSaathi has a graceful degradation path —
+implemented by IBM Bob as part of the initial implementation, not as an
+afterthought:
+  - NASA POWER down → bundled fallback weather JSON with realistic kharif data.
+  - Agmarknet unavailable → static price table covering all 10+ crops.
+  - WATSONX_APIKEY absent or API failure → deterministic f-string explanations
+    in all 10 languages with the same JSON structure as the live response.
+  - SoilGrids rate-limiting → loamy soil defaults.
+  - bcrypt unavailable → hashlib fallback for password hashing.
+  - Unknown city in geocoder → Nagpur lat/lon central-India fallback.
+This depth of fallback coverage is what allows AgriSaathi to run fully offline
+and demo reliably without any network access or API keys configured.
+
+7.4  DELIVERING THE CORE DIFFERENTIATOR — MULTILINGUAL AI
+----------------------------------------------------------
+The single most impactful feature of AgriSaathi for Indian farmers is the
+ability to receive Monte Carlo simulation explanations in their native language.
+English-only AI advisory tools are inaccessible to the majority of India's
+farming population. IBM Bob's implementation of 10-language support — with
+language-specific prompt templates designed to produce culturally appropriate,
+jargon-free advice, and native-script offline fallback text covering Hindi,
+Kannada, Marathi, Bengali, Tamil, Telugu, Gujarati, Punjabi, and Malayalam —
+directly addresses this accessibility gap. This would not have been feasible
+without IBM Bob's ability to generate, review, and validate multilingual
+technical content simultaneously.
+
+7.5  ENABLING ADVANCED COMPUTER GRAPHICS FOR AGRICULTURE
+---------------------------------------------------------
+The 3D digital twin using React Three Fiber is not a trivial visual gimmick —
+it is a meaningful tool that lets a farmer visualise what their field will look
+like day-by-day through the season under actual simulated weather conditions.
+IBM Bob implemented the full GPU-instanced rendering pipeline: from the
+CropVisualRegistry profile database for 10 crop archetypes, through the
+deterministic pseudo-random plant placement algorithm, to the five-stage growth
+animation with golden-angle phyllotaxis leaf placement, health-driven chlorosis
+color shifts, and weather-reactive atmospheric lighting. This level of 3D
+graphics engineering is normally the domain of specialist Three.js developers —
+IBM Bob delivered it within the broader project scope.
+
+7.6  ITERATIVE DEBUGGING AND REFINEMENT
+----------------------------------------
+IBM Bob was not used purely for initial code generation. Throughout the project,
+it was engaged to debug issues discovered during testing — such as the async
+price fetch blocking the event loop (resolved by wrapping in
+loop.run_in_executor), TypeScript compilation errors arising from prop type
+mismatches between parent and child components, and FastAPI CORS configuration
+issues preventing the Vite dev server from reaching the backend. In each case,
+Bob read the relevant files, identified the root cause, and applied minimal,
+targeted fixes without introducing regressions.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION 8 — SUMMARY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+IBM Bob was the sole development assistant for the AgriSaathi project from day
+one of a completely empty workspace. It served simultaneously as architect,
+backend engineer, frontend engineer, 3D graphics programmer, AI integration
+specialist, quantitative modelling expert, and test engineer. Every file in the
+repository — from backend/app/simulation/monte_carlo.py to frontend/src/
+components/DigitalTwin3D/InstancedCropField.tsx to backend/tests/test_llm.py —
+was created, reviewed, and iteratively refined through IBM Bob.
+
+The result is a production-ready, fully offline-capable, IBM watsonx.ai-powered,
+10-language, 3D agricultural decision support platform for Indian farmers — built
+end-to-end with IBM Bob as the core development technology.
+
+================================================================================
+End of IBM Bob Technology Contribution Writeup
+================================================================================
