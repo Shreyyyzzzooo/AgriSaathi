@@ -22,15 +22,16 @@ agritwin/
 │   │   ├── main.py                    FastAPI entry point (CORS, lifespan, routers)
 │   │   ├── api/
 │   │   │   └── routes/
-│   │   │       ├── auth.py            User registration, login, JWT token auth
-│   │   │       ├── farmer_input.py    POST /api/farmer (Session & Profile)
-│   │   │       ├── crops.py           GET  /api/crops
-│   │   │       ├── simulation.py      POST /api/simulate
-│   │   │       ├── explanation.py     POST /api/explanation (LLM layer)
-│   │   │       ├── location.py        GET  /api/location-info (SoilGrids)
-│   │   │       ├── market_prices.py   GET  /api/market-prices
-│   │   │       ├── chat.py            Persistent chatbot APIs
-│   │   │       └── agronomy.py        POST /api/agronomy/plan
+│   │   │   ├── auth.py                User registration, login, JWT token auth
+│   │   │   ├── farmer_input.py        POST /api/farmer (Session & Profile)
+│   │   │   ├── crops.py               GET  /api/crops
+│   │   │   ├── simulation.py          POST /api/simulate
+│   │   │   ├── explanation.py         POST /api/explanation (LLM layer)
+│   │   │   ├── location.py            GET  /api/location-info (SoilGrids)
+│   │   │   ├── market_prices.py       GET  /api/market-prices
+│   │   │   ├── chat.py                Persistent chatbot APIs
+│   │   │   ├── agronomy_agent.py      Gemini agronomy planning agent
+│   │   │   └── agronomy.py            POST /api/agronomy/plan
 │   │   ├── data_sources/
 │   │   │   ├── nasa_power.py          Async NASA POWER weather + fallback
 │   │   │   ├── agmarknet.py           Mandi prices + fallback
@@ -38,7 +39,8 @@ agritwin/
 │   │   │   └── soilgrids.py           ISRIC SoilGrids API + fallback
 │   │   ├── llm/
 │   │   │   ├── prompts/               10 language prompt templates
-│   │   │   ├── explanation_generator.py IBM watsonx.ai client + offline fallback
+│   │   │   ├── explanation_generator.py Llama 3.3 70B (watsonx) + offline fallback
+│   │   │   ├── chat_agent.py          Gemini conversational agent
 │   │   │   └── translation.py         Language routing
 │   │   ├── simulation/
 │   │   │   ├── crop_models.py         Yield × Revenue × Profit math
@@ -145,7 +147,7 @@ npm run dev
 | `POST` | `/api/farmer` | Register farmer session (updates profile if logged in) |
 | `GET`  | `/api/crops` | Filter crops by soil/water/budget |
 | `POST` | `/api/simulate` | Monte Carlo simulation (500 runs/crop) |
-| `POST` | `/api/explanation` | Granite AI bilingual explanation (10 languages) |
+| `POST` | `/api/explanation` | Llama 3.3 70B AI bilingual explanation (10 languages) |
 | `GET`  | `/api/location-info` | Fetch ISRIC SoilGrids data by location string |
 | `POST` | `/api/agronomy/plan` | Generate AI agronomy plan (fertiliser/pesticides) |
 | `POST` | `/api/market-prices` | Fetch live/historical mandi prices |
@@ -181,7 +183,7 @@ PORT=8000
 > **All external services degrade gracefully.** The app runs fully offline:
 > - NASA POWER → Bundled fallback weather JSON
 > - Agmarknet → Bundled modal price table
-> - IBM Granite → Grounded f-string explanations (10 languages)
+> - Llama 3.3 70B → Grounded f-string explanations (10 languages)
 > - SoilGrids → Loamy soil defaults
 > - Google Maps → Nagpur (central India) coordinate fallback
 
@@ -225,7 +227,7 @@ Browser (React + R3F)
              ├─ POST /api/simulate   → asyncio.gather(nasa_power, agmarknet)
              │                          → monte_carlo.simulate_crops()
              │                          → diversification.check_diversification()
-             ├─ POST /api/explanation → IBM Granite (or offline f-string)
+             ├─ POST /api/explanation → Llama 3.3 70B (or offline f-string)
              └─ POST /api/chat        → RAG/Session-aware AI agent
 ```
 
@@ -245,4 +247,4 @@ Browser (React + R3F)
 | Prices | Agmarknet (with static fallback) |
 | Crop data | ICAR reference benchmarks (bundled JSON) |
 | Auth/Session | SQLite (stdlib `sqlite3`), bcrypt |
-| LLM | IBM watsonx.ai (`ibm/granite-13b-chat-v2`), Gemini |
+| LLM | IBM watsonx.ai (`meta-llama/llama-3-3-70b-instruct`), Gemini (`gemini-2.5-flash`) |

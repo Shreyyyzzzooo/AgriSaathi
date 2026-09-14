@@ -21,7 +21,7 @@ from mpltern.datasets import soil_texture_classes
 logger = logging.getLogger(__name__)
 
 _SOILGRIDS_URL = "https://rest.isric.org/soilgrids/v2.0/properties/query"
-_TIMEOUT_S = 5.0
+_TIMEOUT_S = 15.0
 
 
 # --------------------------------------------------------------------------

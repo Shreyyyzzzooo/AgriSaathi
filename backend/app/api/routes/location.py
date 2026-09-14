@@ -20,9 +20,7 @@ class LocationInfoResponse(BaseModel):
 async def get_location_info(q: str):
     """Resolve location to lat/lon and fetch soil properties."""
     try:
-        # BYPASS GEOCODING TEMPORARILY
-        # lat, lon = await get_latlon(q)
-        lat, lon = 25.18, 75.83 # Default coordinate (Kota, India)
+        lat, lon = await get_latlon(q)
     except KeyError:
         raise HTTPException(status_code=404, detail=f"Location '{q}' not found.")
         
@@ -31,23 +29,9 @@ async def get_location_info(q: str):
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except httpx.TimeoutException:
-        # Fallback if ISRIC is slow or rate-limiting
-        soil = {
-            "clay_pct": 30.0,
-            "sand_pct": 40.0,
-            "silt_pct": 30.0,
-            "ph": 6.5,
-            "detected_type": "loamy"
-        }
+        raise HTTPException(status_code=504, detail="ISRIC SoilGrids API timed out.")
     except Exception as e:
-        # Generic fallback for any other ISRIC API error
-        soil = {
-            "clay_pct": 30.0,
-            "sand_pct": 40.0,
-            "silt_pct": 30.0,
-            "ph": 6.5,
-            "detected_type": "loamy"
-        }
+        raise HTTPException(status_code=502, detail=f"ISRIC SoilGrids API error: {str(e)}")
     
     return LocationInfoResponse(
         lat=lat,

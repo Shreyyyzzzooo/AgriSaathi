@@ -1,12 +1,11 @@
-"""IBM watsonx.ai Granite explanation generator.
+"""IBM watsonx.ai Llama 3.3 70B explanation generator.
 
 Fills the prompt templates in prompts/explain_en.txt and prompts/explain_hi.txt
-with actual simulation metrics, calls the Granite foundation model, and parses
-the 3-bullet response.
+with actual simulation metrics, calls the Llama foundation model via watsonx,
+and parses the 3-bullet response.
 
 Model:
-    ibm/granite-13b-chat-v2  (primary)
-    Falls back to ibm/granite-13b-instruct-v2 if chat variant unavailable.
+    meta-llama/llama-3-3-70b-instruct
 
 Credentials (from environment, loaded via python-dotenv in main.py):
     WATSONX_APIKEY      — IBM Cloud API key (also accepts WATSONX_API_KEY)
@@ -82,7 +81,7 @@ def generate_explanation(
         import traceback
         traceback.print_exc()
         logger.warning(
-            "Granite API call failed (%s) — falling back to offline explanation.",
+            "Llama API call failed (%s) — falling back to offline explanation.",
             exc,
         )
         return _offline_explain(ctx, lang)
@@ -162,10 +161,10 @@ def _build_context(
     }
 
 
-# ── Live Granite call ─────────────────────────────────────────────────────────
+# ── Live Llama call ─────────────────────────────────────────────────────────
 
 def _live_explain(ctx: dict[str, Any], lang: str) -> dict[str, Any]:
-    """Fill prompt template(s) and call IBM Granite."""
+    """Fill prompt template(s) and call Llama via watsonx."""
     from ibm_watsonx_ai import Credentials
     from ibm_watsonx_ai.foundation_models import ModelInference
     from ibm_watsonx_ai.metanames import GenTextParamsMetaNames as Params
@@ -194,7 +193,7 @@ def _live_explain(ctx: dict[str, Any], lang: str) -> dict[str, Any]:
             continue
 
     if model is None:
-        raise RuntimeError("No Granite model variant available.")
+        raise RuntimeError("No Llama model variant available.")
 
     prompt_path = _PROMPTS_DIR / f"explain_{lang}.txt"
     if not prompt_path.exists():
@@ -382,7 +381,7 @@ def _template_vars(ctx: dict[str, Any]) -> dict[str, str]:
 
 
 def _parse_bullets(text: str) -> tuple[str, list[str]]:
-    """Parse Granite response into (paragraph_text, bullet_list)."""
+    """Parse Llama response into (paragraph_text, bullet_list)."""
     lines = text.strip().splitlines()
     bullets = [
         ln.lstrip("-•").strip()
