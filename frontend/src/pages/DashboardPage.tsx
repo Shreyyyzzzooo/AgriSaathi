@@ -271,7 +271,7 @@ export default function DashboardPage({
               {getTranslation(lang, "welcomeBack")}, {user?.username || "Farmer"}
             </h1>
             <p style={{ fontSize: "14.5px", color: "rgba(242, 247, 239, 0.8)", margin: "0 0 18px", lineHeight: 1.6, maxWidth: "54ch" }}>
-              Your farm intelligence is ready — combining field conditions and market insights in one place.
+              {getTranslation(lang, "dashboardWelcomeDesc")}
             </p>
 
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
@@ -298,7 +298,7 @@ export default function DashboardPage({
                   e.currentTarget.style.background = "rgba(76, 255, 160, 0.12)";
                 }}
               >
-                <span>✏️ Edit Field Parameters</span>
+                <span>✏️ {getTranslation(lang, "editFieldParams")}</span>
               </button>
 
               <button
@@ -318,7 +318,7 @@ export default function DashboardPage({
                   transition: "all 0.2s",
                 }}
               >
-                <span>Optimize Crop Plan</span>
+                <span>{getTranslation(lang, "optimizeCropPlan")}</span>
                 <ArrowRight size={14} />
               </button>
             </div>
@@ -423,7 +423,7 @@ export default function DashboardPage({
             <FeatureCard
               icon={<Sprout size={24} />}
               title={`🌱 ${getTranslation(lang, "simTitle")}`}
-              description="See your farm come to life as crops grow, respond to conditions, and mature through the season."
+              description={getTranslation(lang, "simCardDesc")}
               actionText={getTranslation(lang, "navSimulation")}
               onClick={onNavigateSimulation}
               badge="3D Immersive"
@@ -433,7 +433,7 @@ export default function DashboardPage({
             <FeatureCard
               icon={<Sparkles size={24} />}
               title={`💬 ${getTranslation(lang, "chatTitle")}`}
-              description="Get practical, AI-powered guidance on crops, weather, risks, and farm decisions."
+              description={getTranslation(lang, "chatCardDesc")}
               actionText={getTranslation(lang, "navChatbot")}
               onClick={onNavigateChatbot}
               badge="watsonx.ai Granite"
@@ -475,10 +475,10 @@ export default function DashboardPage({
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#86EFAC", fontWeight: 700, fontSize: "14px", marginBottom: 8 }}>
               <ShieldCheck size={18} />
-              <span> Crop Growth & Health Simulation</span>
+              <span> {getTranslation(lang, "cropGrowthSim")}</span>
             </div>
             <p style={{ fontSize: "13.5px", color: "rgba(242, 247, 239, 0.8)", lineHeight: 1.6, margin: 0 }}>
-              AgriSaathi models crop growth throughout the season using crop-specific growth cycles, environmental conditions, and simulated health to visualize the journey from planting to harvest.
+              {getTranslation(lang, "cropGrowthSimDesc")}
             </p>
           </div>
 

@@ -116,39 +116,30 @@ async def _query_isric(lat: float, lon: float) -> tuple[float, float, float, flo
 
 
 async def fetch_soil_properties(lat: float, lon: float) -> dict[str, Any]:
-    """Fetch soil properties, jittering by ~6.6km if the coordinate hits an
-    urban/water mask (returns all-zero values)."""
-    d = 0.06
-    offsets = [
-        (d, 0), (-d, 0), (0, d), (0, -d),
-        (d, d), (-d, -d), (d, -d), (-d, d),
-    ]
-
-    clay_pct, sand_pct, silt_pct, ph = await _query_isric(lat, lon)
-
-    if clay_pct == 0 and sand_pct == 0 and silt_pct == 0 and ph == 0:
-        tasks = [_query_isric(lat + dlat, lon + dlon) for dlat, dlon in offsets]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-
-        for res in results:
-            if isinstance(res, Exception):
-                continue
-            c, s, si, p = res
-            if not (c == 0 and s == 0 and si == 0 and p == 0):
-                clay_pct, sand_pct, silt_pct, ph = c, s, si, p
-                logger.info("Coordinate hit urban/water mask. Found valid soil in jittered neighbor.")
-                break
-
-    if clay_pct == 0 and sand_pct == 0 and silt_pct == 0 and ph == 0:
-        raise ValueError("No soil data available for this coordinate (likely an urban center or water body).")
-
-    texture_class = classify_soil_texture(clay_pct, sand_pct, silt_pct)
-
-    return {
-        "clay_pct": round(clay_pct, 1),
-        "sand_pct": round(sand_pct, 1),
-        "silt_pct": round(silt_pct, 1),
-        "ph": round(ph, 1),
-        "detected_type": texture_class,          # e.g. "sandy_loam" — full 12-class detail
-        "detected_type_simple": simple_bucket(texture_class),  # e.g. "loamy" — 4-bucket fallback
-    }
+    """Fetch soil properties from ISRIC SoilGrids API, with fallback."""
+    try:
+        clay_pct, sand_pct, silt_pct, ph = await _query_isric(lat, lon)
+        if clay_pct == 0 and sand_pct == 0 and silt_pct == 0:
+            raise ValueError("No soil data returned for coordinates")
+            
+        detected_type = classify_soil_texture(clay_pct, sand_pct, silt_pct)
+        detected_type_simple = simple_bucket(detected_type)
+        
+        return {
+            "clay_pct": clay_pct,
+            "sand_pct": sand_pct,
+            "silt_pct": silt_pct,
+            "ph": ph,
+            "detected_type": detected_type,
+            "detected_type_simple": detected_type_simple,
+        }
+    except Exception as e:
+        logger.warning(f"Failed to fetch ISRIC soil data for {lat},{lon} - {e}. Using fallback.")
+        return {
+            "clay_pct": 30.0,
+            "sand_pct": 40.0,
+            "silt_pct": 30.0,
+            "ph": 6.5,
+            "detected_type": "clay_loam",
+            "detected_type_simple": "loamy",
+        }
